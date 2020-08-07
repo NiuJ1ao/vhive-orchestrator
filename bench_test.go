@@ -336,14 +336,14 @@ func getOutFile(name string) string {
 func getAllImages() map[string]string {
 	return map[string]string{
 		"helloworld":   "ustiugov/helloworld:var_workload",
-		"chameleon":    "ustiugov/chameleon:var_workload",
-		"pyaes":        "ustiugov/pyaes:var_workload",
-		"image_rotate": "ustiugov/image_rotate:var_workload",
-		"json_serdes":  "ustiugov/json_serdes:var_workload",
-		"lr_serving":   "ustiugov/lr_serving:var_workload",
-		"cnn_serving":  "ustiugov/cnn_serving:var_workload",
-		"rnn_serving":  "ustiugov/rnn_serving:var_workload",
-		"lr_training":  "ustiugov/lr_training:var_workload",
+		//"chameleon":    "ustiugov/chameleon:var_workload",
+		//"pyaes":        "ustiugov/pyaes:var_workload",
+		//"image_rotate": "ustiugov/image_rotate:var_workload",
+		//"json_serdes":  "ustiugov/json_serdes:var_workload",
+		//"lr_serving":   "ustiugov/lr_serving:var_workload",
+		//"cnn_serving":  "ustiugov/cnn_serving:var_workload",
+		//"rnn_serving":  "ustiugov/rnn_serving:var_workload",
+		//"lr_training":  "ustiugov/lr_training:var_workload",
 	}
 }
 
