@@ -285,6 +285,28 @@ func (m *MemoryManager) DumpVMStats(vmID, functionName, metricsOutFilePath strin
 		}
 	}
 
+	// HAX
+	state.trace.sortTrace()
+
+	file, err := os.Create("/tmp/orig_trace")
+	if err != nil {
+		log.Fatalf("Failed to open trace file for writing: %v", err)
+	}
+	defer file.Close()
+
+	writer = csv.NewWriter(file)
+	defer writer.Flush()
+
+	for _, rec := range state.trace.trace {
+		err := writer.Write([]string{
+			strconv.FormatUint(rec.offset, 16),
+			strconv.FormatInt(rec.timestamp, 10),
+			strconv.Itoa(rec.servedNum)})
+		if err != nil {
+			log.Fatalf("Failed to write trace: %v", err)
+		}
+	}
+
 	return nil
 }
 

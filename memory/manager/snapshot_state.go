@@ -3,10 +3,12 @@ package manager
 import (
 	"context"
 	"encoding/binary"
+	"encoding/csv"
 	"errors"
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -153,6 +155,12 @@ func (s *SnapshotState) pollUserPageFaults(readyCh chan int) {
 
 	logger.Debug("Starting polling loop")
 
+	file, err := os.Create("/tmp/second_trace")
+	if err != nil {
+		log.Fatalf("Failed to open trace file for writing: %v", err)
+	}
+	defer file.Close()
+
 	defer syscall.Close(s.epfd)
 
 	readyCh <- 0
@@ -199,7 +207,7 @@ func (s *SnapshotState) pollUserPageFaults(readyCh chan int) {
 
 				address := binary.LittleEndian.Uint64(goMsg[16:])
 
-				if err := s.servePageFault(fd, address); err != nil {
+				if err := s.servePageFault(fd, address, file); err != nil {
 					log.Fatalf("Failed to serve page fault")
 				}
 			}
@@ -207,13 +215,19 @@ func (s *SnapshotState) pollUserPageFaults(readyCh chan int) {
 	}
 }
 
-func (s *SnapshotState) servePageFault(fd int, address uint64) error {
+func (s *SnapshotState) servePageFault(fd int, address uint64, file *os.File) error {
 	s.startAddressOnce.Do(
 		func() {
 			s.startAddress = address
 		})
 
+	writer := csv.NewWriter(file)
 	offset := address - s.startAddress
+
+	err := writer.Write([]string{strconv.FormatUint(offset, 16)})
+	if err != nil {
+		log.Fatalf("Failed to write trace: %v", err)
+	}
 
 	src := uint64(uintptr(unsafe.Pointer(&s.guestMem[offset])))
 	dst := uint64(int64(address) & ^(int64(os.Getpagesize()) - 1))
