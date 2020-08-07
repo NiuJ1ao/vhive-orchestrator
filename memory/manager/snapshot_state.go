@@ -228,6 +228,7 @@ func (s *SnapshotState) servePageFault(fd int, address uint64, file *os.File) er
 	if err != nil {
 		log.Fatalf("Failed to write trace: %v", err)
 	}
+	writer.Flush()
 
 	src := uint64(uintptr(unsafe.Pointer(&s.guestMem[offset])))
 	dst := uint64(int64(address) & ^(int64(os.Getpagesize()) - 1))
