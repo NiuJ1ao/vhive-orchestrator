@@ -2,7 +2,6 @@ package ctriface
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"os"
 	"sync"
@@ -15,7 +14,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var isUPFEnabled = flag.Bool("upf", false, "Set UPF enabled")
 
 func TestSnapLoad(t *testing.T) {
 	// Need to clean up manually after this test because StopVM does not
@@ -127,11 +125,11 @@ func TestParallelSnapLoad(t *testing.T) {
 
 	log.SetLevel(log.InfoLevel)
 
-	testTimeout := 120 * time.Second
+	testTimeout := 520 * time.Second
 	ctx, cancel := context.WithTimeout(namespaces.WithNamespace(context.Background(), namespaceName), testTimeout)
 	defer cancel()
 
-	vmNum := 5
+	vmNum := 200
 	vmIDBase := 6
 	imageName := "ustiugov/helloworld:runner_workload"
 
