@@ -180,6 +180,10 @@ func NewFunction(fID, imageName string, Stats *Stats, servedTh uint64, isToPin b
 	if thresh <= 0 {
 		thresh = int64(servedTh)
 	}
+	if thresh <= 1 {
+		thresh = 2
+	}
+
 	if isTestMode && servedTh == 40 { // 40 is used in tests
 		thresh = 40
 	}

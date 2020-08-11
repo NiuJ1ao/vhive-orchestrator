@@ -177,6 +177,16 @@ func (s *server) StartVM(ctx context.Context, in *pb.StartVMReq) (*pb.StartVMRes
 		return &pb.StartVMResp{Message: "First serve failed", Profile: tProfile}, err
 	}
 
+	_, err = funcPool.RemoveInstance(fID, imageName, true)
+	if err != nil {
+		return &pb.StartVMResp{Message: "Removing instance after first serve failed", Profile: tProfile}, err
+	}
+
+	_, _, err = funcPool.Serve(ctx, fID, imageName, "record")
+	if err != nil {
+		return &pb.StartVMResp{Message: "Second serve failed", Profile: tProfile}, err
+	}
+
 	return &pb.StartVMResp{Message: "started VM instance for a function " + fID, Profile: tProfile}, nil
 }
 
