@@ -57,8 +57,8 @@ func WithSnapshotsDir(snapshotsDir string) OrchestratorOption {
 	}
 }
 
-// WithReplayMode Sets the replay mode on or off
-// Only works if snapshots are enabled
+// WithLazyMode Sets the lazy mode on or off
+// Only works if ups are enabled
 func WithLazyMode(isLazyMode bool) OrchestratorOption {
 	return func(o *Orchestrator) {
 		o.isLazyMode = isLazyMode
@@ -69,5 +69,12 @@ func WithLazyMode(isLazyMode bool) OrchestratorOption {
 func WithMetricsMode(isMetricsMode bool) OrchestratorOption {
 	return func(o *Orchestrator) {
 		o.isMetricsMode = isMetricsMode
+	}
+}
+
+// WithReplayConfig Sets the replay mode
+func WithReplayConfig(replayConfig int) OrchestratorOption {
+	return func(o *Orchestrator) {
+		o.replayConfig = replayConfig
 	}
 }

@@ -79,6 +79,7 @@ type Orchestrator struct {
 	isLazyMode       bool
 	snapshotsDir     string
 	isMetricsMode    bool
+	replayConfig     int
 
 	memoryManager *manager.MemoryManager
 }
@@ -311,12 +312,20 @@ func (o *Orchestrator) StartVM(ctx context.Context, vmID, imageName string) (str
 	if o.GetUPFEnabled() {
 		logger.Debug("Registering VM with the memory manager")
 
+		if o.isLazyMode && o.replayConfig > 0 {
+			logger.Panic("Replay config used with lazy mode")
+		}
+		if !o.isLazyMode && o.replayConfig == 0 {
+			logger.Panic("None of replay config or lazy mode used")
+		}
+
 		stateCfg := manager.SnapshotStateCfg{
 			VMID:             vmID,
 			GuestMemPath:     o.getMemoryFile(vmID),
 			BaseDir:          o.getVMBaseDir(vmID),
 			GuestMemSize:     int(conf.MachineCfg.MemSizeMib) * 1024 * 1024,
 			IsLazyMode:       o.isLazyMode,
+			ReplayConfig:     o.replayConfig,
 			VMMStatePath:     o.getSnapshotFile(vmID),
 			WorkingSetPath:   o.getWorkingSetFile(vmID),
 			InstanceSockAddr: resp.UPFSockPath,
