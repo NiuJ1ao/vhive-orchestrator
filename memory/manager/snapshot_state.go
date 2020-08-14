@@ -375,7 +375,6 @@ func (s *SnapshotState) servePageFault(fd int, address uint64) error {
 
 func (s *SnapshotState) installWorkingSetPages(fd int) {
 	log.Debug("Installing the working set pages")
-	// TODO: parallel (goroutines) vs serial, by region vs by page
 
 	// build a list of sorted regions (probably, it's better to make trace.regions an array instead of a map FIXME)
 	keys := make([]uint64, 0)
@@ -385,14 +384,11 @@ func (s *SnapshotState) installWorkingSetPages(fd int) {
 	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
 
 	var (
-		srcOffset uint64
-		//wg        sync.WaitGroup
+		srcOffset   uint64
+		concurrency = 4
 	)
 
-	/*
-		concurrency := 10
-		sem := make(chan bool, concurrency) // channel-based semaphore to limit IOCTLs in-flight
-	*/
+	sem := make(chan bool, concurrency) // channel-based semaphore to limit IOCTLs in-flight
 
 	for _, offset := range keys {
 		regLength := s.trace.regions[offset]
@@ -401,32 +397,20 @@ func (s *SnapshotState) installWorkingSetPages(fd int) {
 		src := uint64(uintptr(unsafe.Pointer(&s.workingSet[srcOffset])))
 		dst := regAddress
 
-		// BUG: concurrency of 10-100 goroutines caused some OS kernel process (kworker) to hang
-		/*
-			wg.Add(1)
-			sem <- true
+		sem <- true
 
-			go func(fd int, src, dst, len uint64) {
-				defer wg.Done()
+		go func(fd int, src, dst, len uint64) {
+			installRegion(fd, src, dst, mode, len)
 
-				installRegion(fd, src, dst, mode, len)
-
-				<-sem
-			}(fd, src, dst, uint64(regLength))
-		*/
-
-		installRegion(fd, src, dst, mode, uint64(regLength))
+			<-sem
+		}(fd, src, dst, uint64(regLength))
 
 		srcOffset += uint64(regLength) * 4096
 	}
 
-	/*
-		for i := 0; i < cap(sem); i++ {
-			sem <- true
-		}
-
-		wg.Wait()
-	*/
+	for i := 0; i < cap(sem); i++ {
+		sem <- true
+	}
 
 	// working set installation happens on the first page fault that is always at startAddress
 	wake(fd, s.startAddress, os.Getpagesize())
