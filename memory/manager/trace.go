@@ -109,7 +109,7 @@ func (t *Trace) containsRecord(rec Record) bool {
 
 // ProcessRecord Prepares the trace, the regions map, and the working set file for replay
 // Must be called when record is done (i.e., it is not concurrency-safe vs. AppendRecord)
-func (t *Trace) ProcessRecord(GuestMemPath, WorkingSetPath string) {
+func (t *Trace) ProcessRecord() {
 	log.Debug("Preparing replay structures")
 
 	// sort trace records in the ascending order by offset
@@ -129,54 +129,4 @@ func (t *Trace) ProcessRecord(GuestMemPath, WorkingSetPath string) {
 
 		last = rec.offset
 	}
-
-	t.writeWorkingSetPagesToFile(GuestMemPath, WorkingSetPath)
-}
-
-func (t *Trace) writeWorkingSetPagesToFile(guestMemFileName, WorkingSetPath string) {
-	log.Debug("Writing the working set pages to a disk")
-
-	fSrc, err := os.Open(guestMemFileName)
-	if err != nil {
-		log.Fatalf("Failed to open guest memory file for reading")
-	}
-	defer fSrc.Close()
-	fDst, err := os.Create(WorkingSetPath)
-	if err != nil {
-		log.Fatalf("Failed to open ws file for writing")
-	}
-	defer fDst.Close()
-
-	var (
-		dstOffset int64
-		count     int
-	)
-
-	// Form a sorted slice of keys to access the map in a predetermined order
-	keys := make([]uint64, 0)
-	for k := range t.regions {
-		keys = append(keys, k)
-	}
-	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
-
-	for _, offset := range keys {
-		regLength := t.regions[offset]
-		copyLen := regLength * os.Getpagesize()
-
-		buf := make([]byte, copyLen)
-
-		if n, err := fSrc.ReadAt(buf, int64(offset)); n != copyLen || err != nil {
-			log.Fatalf("Read file failed for src")
-		}
-
-		if n, err := fDst.WriteAt(buf, dstOffset); n != copyLen || err != nil {
-			log.Fatalf("Write file failed for dst")
-		}
-
-		dstOffset += int64(copyLen)
-
-		count += regLength
-	}
-
-	fDst.Sync()
 }

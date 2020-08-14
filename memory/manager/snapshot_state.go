@@ -38,6 +38,7 @@ type SnapshotStateCfg struct {
 	BaseDir          string // base directory for the instance
 	MetricsPath      string // path to csv file where the metrics should be stored
 	IsLazyMode       bool
+	ReplayConfig     int // 1 for serial pages, 2 for parallel pages, 3 for serial regions ;; all from guest memory
 	GuestMemSize     int
 	metricsModeOn    bool
 }
@@ -227,7 +228,6 @@ func (s *SnapshotState) pollUserPageFaults(readyCh chan int) {
 
 	var (
 		events [1]syscall.EpollEvent
-		tStart time.Time
 	)
 
 	logger.Debug("Starting polling loop")
@@ -235,18 +235,6 @@ func (s *SnapshotState) pollUserPageFaults(readyCh chan int) {
 	defer syscall.Close(s.epfd)
 
 	readyCh <- 0
-
-	// if s.isReplayWorkingSet {
-	if s.isRecordReady && !s.IsLazyMode {
-		if s.metricsModeOn {
-			tStart = time.Now()
-		}
-		s.fetchState()
-		if s.metricsModeOn {
-			s.currentMetric.MetricMap[fetchStateMetric] = metrics.ToUS(time.Since(tStart))
-		}
-	}
-	// }
 
 	for {
 		select {
@@ -314,6 +302,20 @@ func (s *SnapshotState) servePageFault(fd int, address uint64) error {
 				if s.metricsModeOn {
 					tStart = time.Now()
 				}
+
+				switch s.ReplayConfig {
+				case 0:
+					panic("Invalid replay config")
+				case 1:
+					s.installGuestMemPagesSerial(fd)
+				case 2:
+					s.installGuestMemPagesParallel(fd)
+				case 3:
+					s.installGuestMemRegionsSerial(fd)
+				default:
+					panic("Invalid replay config")
+				}
+
 				s.installWorkingSetPages(fd)
 				if s.metricsModeOn {
 					s.currentMetric.MetricMap[installWSMetric] = metrics.ToUS(time.Since(tStart))
@@ -488,4 +490,78 @@ func sizeOfUFFDMsg() int {
 
 func uffdPageFault() uint8 {
 	return uint8(C.const_UFFD_EVENT_PAGEFAULT)
+}
+
+func (s *SnapshotState) installGuestMemPagesSerial(fd int) {
+	// READ: Installs PAGES SERIALLY upon the first page fault
+	// FROM THE GUEST MEMORY
+
+	log.Debug("Installing the working set pages")
+
+	for _, rec := range s.trace.trace {
+		offset := rec.offset
+		regAddress := s.startAddress + offset
+		mode := uint64(C.const_UFFDIO_COPY_MODE_DONTWAKE)
+		src := uint64(uintptr(unsafe.Pointer(&s.guestMem[offset])))
+		dst := regAddress
+
+		installRegion(fd, src, dst, mode, 1)
+	}
+
+	// working set installation happens on the first page fault that is always at startAddress
+	wake(fd, s.startAddress, os.Getpagesize())
+}
+
+func (s *SnapshotState) installGuestMemPagesParallel(fd int) {
+	// READ: Installs PAGES IN PARALLEL upon the first page fault
+	// FROM THE GUEST MEMORY
+
+	log.Debug("Installing the working set pages")
+
+	var wg sync.WaitGroup
+
+	for _, rec := range s.trace.trace {
+		offset := rec.offset
+		regAddress := s.startAddress + offset
+		mode := uint64(C.const_UFFDIO_COPY_MODE_DONTWAKE)
+		src := uint64(uintptr(unsafe.Pointer(&s.guestMem[offset])))
+		dst := regAddress
+
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+			installRegion(fd, src, dst, mode, 1)
+		}()
+	}
+
+	wg.Wait()
+
+	// working set installation happens on the first page fault that is always at startAddress
+	wake(fd, s.startAddress, os.Getpagesize())
+}
+
+func (s *SnapshotState) installGuestMemRegionsSerial(fd int) {
+	// READ: Installs REGIONS SERIALLY upon the first page fault
+	// FROM THE GUEST MEMORY
+	log.Debug("Installing the working set pages")
+
+	keys := make([]uint64, 0)
+	for k := range s.trace.regions {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
+
+	for _, offset := range keys {
+		regLength := s.trace.regions[offset]
+		regAddress := s.startAddress + offset
+		mode := uint64(C.const_UFFDIO_COPY_MODE_DONTWAKE)
+		src := uint64(uintptr(unsafe.Pointer(&s.guestMem[offset])))
+		dst := regAddress
+
+		installRegion(fd, src, dst, mode, uint64(regLength))
+	}
+
+	// working set installation happens on the first page fault that is always at startAddress
+	wake(fd, s.startAddress, os.Getpagesize())
 }

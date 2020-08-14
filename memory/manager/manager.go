@@ -217,7 +217,7 @@ func (m *MemoryManager) Deactivate(vmID string) error {
 
 	state.userFaultFD.Close()
 	if !state.isRecordReady && !state.IsLazyMode {
-		state.trace.ProcessRecord(state.GuestMemPath, state.WorkingSetPath)
+		state.trace.ProcessRecord()
 	}
 
 	state.isRecordReady = true
@@ -226,7 +226,7 @@ func (m *MemoryManager) Deactivate(vmID string) error {
 	return nil
 }
 
-// DumpVMStats Saves the per VM stats
+// DumpUPFPageStats Saves the per VM stats
 func (m *MemoryManager) DumpUPFPageStats(vmID, functionName, metricsOutFilePath string) (err error) {
 	var (
 		statHeader []string
@@ -319,7 +319,7 @@ func (m *MemoryManager) DumpUPFPageStats(vmID, functionName, metricsOutFilePath 
 	return nil
 }
 
-// DumpLatencyStats Dumps latency stats collected for the VM
+// DumpUPFLatencyStats Dumps latency stats collected for the VM
 func (m *MemoryManager) DumpUPFLatencyStats(vmID, functionName, latencyOutFilePath string) (err error) {
 	logger := log.WithFields(log.Fields{"vmID": vmID})
 
