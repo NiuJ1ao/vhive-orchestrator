@@ -46,6 +46,7 @@ var (
 	isSnapshotsEnabledTest = flag.Bool("snapshotsTest", false, "Use VM snapshots when adding function instances")
 	isMetricsModeTest      = flag.Bool("metricsTest", false, "Calculate UPF metrics")
 	isLazyModeTest         = flag.Bool("lazyTest", false, "Enable lazy serving mode when UPFs are enabled")
+	replayConfig           = flag.Int("replayConfig", 0, "1.serve pages serially 2. serve pages in parallel 3. serve regions serially")
 )
 
 func TestMain(m *testing.M) {
@@ -59,7 +60,7 @@ func TestMain(m *testing.M) {
 
 	log.SetOutput(os.Stdout)
 
-	log.SetLevel(log.InfoLevel)
+	log.SetLevel(log.DebugLevel)
 
 	flag.Parse()
 
@@ -67,6 +68,7 @@ func TestMain(m *testing.M) {
 	log.Infof("Orchestrator UPF enabled: %t", *isUPFEnabledTest)
 	log.Infof("Orchestrator lazy serving mode enabled: %t", *isLazyModeTest)
 	log.Infof("Orchestrator UPF metrics enabled: %t", *isMetricsModeTest)
+	log.Infof("Orchestrator replay config: %d", *replayConfig)
 
 	orch = ctriface.NewOrchestrator(
 		"devmapper",
@@ -75,6 +77,7 @@ func TestMain(m *testing.M) {
 		ctriface.WithUPF(*isUPFEnabledTest),
 		ctriface.WithMetricsMode(*isMetricsModeTest),
 		ctriface.WithLazyMode(*isLazyModeTest),
+		ctriface.WithReplayConfig(*replayConfig),
 	)
 
 	ret := m.Run()
