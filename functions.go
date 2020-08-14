@@ -41,6 +41,7 @@ import (
 )
 
 var isTestMode bool // set with a call to NewFuncPool
+var muCreateSnapGlobal sync.Mutex
 
 //////////////////////////////// FunctionPool type //////////////////////////////////////////
 
@@ -385,7 +386,7 @@ func (f *Function) RemoveInstance(isSync bool) (string, error) {
 	f.OnceAddInstance = new(sync.Once)
 
 	if orch.GetSnapshotsEnabled() {
-		f.OffloadInstance()
+		go f.OffloadInstance()
 		r = "Successfully offloaded instance " + f.vmID
 	} else {
 		if isSync {
@@ -412,6 +413,9 @@ func (f *Function) DumpUPFLatencyStats(functionName, latencyOutFilePath string) 
 
 // CreateInstanceSnapshot Creates a snapshot of the instance
 func (f *Function) CreateInstanceSnapshot() {
+	muCreateSnapGlobal.Lock() // pacing SSD BW
+	defer muCreateSnapGlobal.Unlock()
+
 	logger := log.WithFields(log.Fields{"fID": f.fID})
 
 	logger.Debug("Creating instance snapshot")
