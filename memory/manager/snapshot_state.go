@@ -316,7 +316,6 @@ func (s *SnapshotState) servePageFault(fd int, address uint64) error {
 					panic("Invalid replay config")
 				}
 
-				s.installWorkingSetPages(fd)
 				if s.metricsModeOn {
 					s.currentMetric.MetricMap[installWSMetric] = metrics.ToUS(time.Since(tStart))
 				}
