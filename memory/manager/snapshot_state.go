@@ -519,7 +519,8 @@ func (s *SnapshotState) installGuestMemPagesParallel(fd int) {
 
 	log.Debug("Installing the working set pages")
 
-	var wg sync.WaitGroup
+	concurrency := 4
+	sem := make(chan bool, concurrency) // channel-based semaphore to limit IOCTLs in-flight
 
 	for _, rec := range s.trace.trace {
 		offset := rec.offset
@@ -528,15 +529,17 @@ func (s *SnapshotState) installGuestMemPagesParallel(fd int) {
 		src := uint64(uintptr(unsafe.Pointer(&s.guestMem[offset])))
 		dst := regAddress
 
-		wg.Add(1)
+		sem <- true
 
 		go func() {
-			defer wg.Done()
 			installRegion(fd, src, dst, mode, 1)
+			<-sem
 		}()
 	}
 
-	wg.Wait()
+	for i := 0; i < cap(sem); i++ {
+		sem <- true
+	}
 
 	// working set installation happens on the first page fault that is always at startAddress
 	wake(fd, s.startAddress, os.Getpagesize())
