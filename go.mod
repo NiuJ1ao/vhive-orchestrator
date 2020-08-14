@@ -10,7 +10,7 @@ require (
 	github.com/containerd/containerd v1.3.6
 	github.com/sirupsen/logrus v1.6.0
 	github.com/stretchr/testify v1.6.1
-	github.com/ustiugov/fccd-orchestrator/ctriface v0.0.0-20200814130324-e956221ecec9
+	github.com/ustiugov/fccd-orchestrator/ctriface v0.0.0-20200814161256-ae5789d468b5
 	github.com/ustiugov/fccd-orchestrator/helloworld v0.0.0-20200803195925-0629e1cf4599
 	github.com/ustiugov/fccd-orchestrator/metrics v0.0.0-20200813133133-6b46b3623de0
 	github.com/ustiugov/fccd-orchestrator/proto v0.0.0-20200803195925-0629e1cf4599
