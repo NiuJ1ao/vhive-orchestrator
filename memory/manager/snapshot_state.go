@@ -312,6 +312,8 @@ func (s *SnapshotState) servePageFault(fd int, address uint64) error {
 					s.installGuestMemPagesParallel(fd)
 				case 3:
 					s.installGuestMemRegionsSerial(fd)
+				case 4:
+					s.installGuestMemRegionsParallel(fd)
 				default:
 					panic("Invalid replay config")
 				}
@@ -559,6 +561,43 @@ func (s *SnapshotState) installGuestMemRegionsSerial(fd int) {
 		dst := regAddress
 
 		installRegion(fd, src, dst, mode, uint64(regLength))
+	}
+
+	// working set installation happens on the first page fault that is always at startAddress
+	wake(fd, s.startAddress, os.Getpagesize())
+}
+
+func (s *SnapshotState) installGuestMemRegionsParallel(fd int) {
+	log.Debug("Installing the working set pages")
+	// TODO: parallel (goroutines) vs serial, by region vs by page
+
+	// build a list of sorted regions (probably, it's better to make trace.regions an array instead of a map FIXME)
+	keys := make([]uint64, 0)
+	for k := range s.trace.regions {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
+
+	concurrency := 4
+	sem := make(chan bool, concurrency) // channel-based semaphore to limit IOCTLs in-flight
+
+	for _, offset := range keys {
+		regLength := s.trace.regions[offset]
+		regAddress := s.startAddress + offset
+		mode := uint64(C.const_UFFDIO_COPY_MODE_DONTWAKE)
+		src := uint64(uintptr(unsafe.Pointer(&s.guestMem[offset])))
+		dst := regAddress
+
+		sem <- true
+
+		go func(fd int, src, dst, len uint64) {
+			installRegion(fd, src, dst, mode, len)
+			<-sem
+		}(fd, src, dst, uint64(regLength))
+	}
+
+	for i := 0; i < cap(sem); i++ {
+		sem <- true
 	}
 
 	// working set installation happens on the first page fault that is always at startAddress
