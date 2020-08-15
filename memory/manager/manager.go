@@ -65,6 +65,8 @@ func (m *MemoryManager) RegisterVM(cfg SnapshotStateCfg) error {
 
 	m.instances[vmID] = state
 
+	state.trace.readTrace()
+	state.trace.ProcessRecord()
 	return nil
 }
 
@@ -201,7 +203,7 @@ func (m *MemoryManager) Deactivate(vmID string) error {
 		return err
 	}
 
-	if state.metricsModeOn && state.isRecordReady {
+	if state.metricsModeOn {
 		state.uniquePFServed = append(state.uniquePFServed, float64(state.uniqueNum))
 
 		if state.IsLazyMode {
@@ -216,11 +218,7 @@ func (m *MemoryManager) Deactivate(vmID string) error {
 	}
 
 	state.userFaultFD.Close()
-	if !state.isRecordReady && !state.IsLazyMode {
-		state.trace.ProcessRecord(state.GuestMemPath, state.WorkingSetPath)
-	}
 
-	state.isRecordReady = true
 	state.isActive = false
 
 	return nil

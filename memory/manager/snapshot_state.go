@@ -63,8 +63,6 @@ type SnapshotState struct {
 	// for sanity checking on deactivate/activate
 	isActive bool
 
-	isRecordReady bool
-
 	isWSCopy bool
 
 	guestMem   []byte
@@ -237,7 +235,7 @@ func (s *SnapshotState) pollUserPageFaults(readyCh chan int) {
 	readyCh <- 0
 
 	// if s.isReplayWorkingSet {
-	if s.isRecordReady && !s.IsLazyMode {
+	if !s.IsLazyMode {
 		if s.metricsModeOn {
 			tStart = time.Now()
 		}
@@ -310,7 +308,7 @@ func (s *SnapshotState) servePageFault(fd int, address uint64) error {
 			s.startAddress = address
 
 			// if s.isReplayWorkingSet
-			if s.isRecordReady && !s.IsLazyMode {
+			if !s.IsLazyMode {
 				if s.metricsModeOn {
 					tStart = time.Now()
 				}
@@ -338,25 +336,18 @@ func (s *SnapshotState) servePageFault(fd int, address uint64) error {
 		offset: offset,
 	}
 
-	if !s.isRecordReady {
-		s.trace.AppendRecord(rec)
-	} else {
-		log.Debug("Serving a page that is missing from the working set")
-	}
+	log.Debug("Serving a page that is missing from the working set")
 
 	if s.metricsModeOn {
-		if s.isRecordReady {
-			if s.IsLazyMode {
-				if !s.trace.containsRecord(rec) {
-					s.uniqueNum++
-					isMeasured = true
-				}
-				s.replayedNum++
-			} else {
+		if s.IsLazyMode {
+			if !s.trace.containsRecord(rec) {
 				s.uniqueNum++
 				isMeasured = true
 			}
-
+			s.replayedNum++
+		} else {
+			s.uniqueNum++
+			isMeasured = true
 		}
 
 		if isMeasured {
