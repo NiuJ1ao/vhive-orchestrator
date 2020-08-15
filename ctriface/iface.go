@@ -36,13 +36,10 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/containerd/containerd"
-	"github.com/containerd/containerd/cio"
 	"github.com/containerd/containerd/namespaces"
-	"github.com/containerd/containerd/oci"
 
 	fcclient "github.com/firecracker-microvm/firecracker-containerd/firecracker-control/client"
 	"github.com/firecracker-microvm/firecracker-containerd/proto" // note: from the original repo
-	"github.com/firecracker-microvm/firecracker-containerd/runtime/firecrackeroci"
 	"github.com/pkg/errors"
 
 	"google.golang.org/grpc"
@@ -205,11 +202,6 @@ func (o *Orchestrator) getFuncClient(ctx context.Context, vm *misc.VM, logger *l
 
 // StartVM Boots a VM if it does not exist
 func (o *Orchestrator) StartVM(ctx context.Context, vmID, imageName string) (string, *metrics.Metric, error) {
-	var (
-		startVMMetric *metrics.Metric = metrics.NewMetric()
-		tStart        time.Time
-	)
-
 	logger := log.WithFields(log.Fields{"vmID": vmID, "image": imageName})
 	logger.Debug("StartVM: Received StartVM")
 
@@ -217,97 +209,20 @@ func (o *Orchestrator) StartVM(ctx context.Context, vmID, imageName string) (str
 	vm, err := o.vmPool.Allocate(vmID)
 	if err != nil {
 		logger.Panic("StartVM: Unknown error")
-		return "StartVM: Unknown error", startVMMetric, err
+		return "StartVM: Unknown error", nil, err
 	}
 
 	ctx = namespaces.WithNamespace(ctx, namespaceName)
-	tStart = time.Now()
-	if vm.Image, err = o.getImage(ctx, imageName); err != nil {
-		return "Failed to start VM", startVMMetric, errors.Wrapf(err, "Failed to get/pull image")
-	}
-	startVMMetric.MetricMap[metrics.GetImage] = metrics.ToUS(time.Since(tStart))
 
-	logger.Debug("StartVM: Creating a new VM")
-	tStart = time.Now()
 	conf := o.getVMConfig(vm)
 	resp, err := o.fcClient.CreateVM(ctx, conf)
-	startVMMetric.MetricMap[metrics.FcCreateVM] = metrics.ToUS(time.Since(tStart))
 	if err != nil {
 		if errCleanup := o.cleanup(ctx, vm, false, false, false, false); errCleanup != nil {
 			logger.Warn("Cleanup failed: ", errCleanup)
 		}
-		return "Failed to start VM", startVMMetric, errors.Wrap(err, "failed to create the VM")
+		return "Failed to start VM", nil, errors.Wrap(err, "failed to create the VM")
 	}
 
-	logger.Debug("StartVM: Creating a new container")
-	tStart = time.Now()
-	container, err := o.client.NewContainer(
-		ctx,
-		vmID,
-		containerd.WithSnapshotter(o.snapshotter),
-		containerd.WithNewSnapshot(vmID, *vm.Image),
-		containerd.WithNewSpec(
-			oci.WithImageConfig(*vm.Image),
-			firecrackeroci.WithVMID(vmID),
-			firecrackeroci.WithVMNetwork,
-		),
-		containerd.WithRuntime("aws.firecracker", nil),
-	)
-	startVMMetric.MetricMap[metrics.NewContainer] = metrics.ToUS(time.Since(tStart))
-	vm.Container = &container
-	if err != nil {
-		if errCleanup := o.cleanup(ctx, vm, true, false, false, false); errCleanup != nil {
-			logger.Warn("Cleanup failed: ", errCleanup)
-		}
-		return "Failed to start VM", startVMMetric, errors.Wrap(err, "failed to create a container")
-	}
-
-	logger.Debug("StartVM: Creating a new task")
-	tStart = time.Now()
-	task, err := container.NewTask(ctx, cio.NewCreator(cio.WithStdio))
-	startVMMetric.MetricMap[metrics.NewTask] = metrics.ToUS(time.Since(tStart))
-	vm.Task = &task
-	if err != nil {
-		if errCleanup := o.cleanup(ctx, vm, true, true, false, false); errCleanup != nil {
-			logger.Warn("Cleanup failed: ", errCleanup)
-		}
-		return "Failed to start VM", startVMMetric, errors.Wrap(err, "failed to create a task")
-	}
-
-	logger.Debug("StartVM: Waiting for the task to get ready")
-	tStart = time.Now()
-	ch, err := task.Wait(ctx)
-	startVMMetric.MetricMap[metrics.TaskWait] = metrics.ToUS(time.Since(tStart))
-	vm.TaskCh = ch
-	if err != nil {
-		if errCleanup := o.cleanup(ctx, vm, true, true, true, false); errCleanup != nil {
-			logger.Warn("Cleanup failed: ", errCleanup)
-		}
-		return "Failed to start VM", startVMMetric, errors.Wrap(err, "failed to wait for a task")
-	}
-
-	logger.Debug("StartVM: Starting the task")
-	tStart = time.Now()
-	if err := task.Start(ctx); err != nil {
-		if errCleanup := o.cleanup(ctx, vm, true, true, true, false); errCleanup != nil {
-			logger.Warn("Cleanup failed: ", errCleanup)
-		}
-		return "Failed to start VM", startVMMetric, errors.Wrap(err, "failed to start a task")
-	}
-	startVMMetric.MetricMap[metrics.TaskStart] = metrics.ToUS(time.Since(tStart))
-
-	tStart = time.Now()
-	funcClient, err := o.getFuncClient(ctx, vm, logger)
-	if err != nil {
-		return "Failed to start VM", startVMMetric, errors.Wrap(err, "failed to connect to a function")
-	}
-	vm.FuncClient = &funcClient
-	startVMMetric.MetricMap[metrics.ConnectFuncClient] = metrics.ToUS(time.Since(tStart))
-
-	if err := os.MkdirAll(o.getVMBaseDir(vmID), 0777); err != nil {
-		logger.Error("Failed to create VM base dir")
-		return "failed to create VM base dir", startVMMetric, err
-	}
 	if o.GetUPFEnabled() {
 		logger.Debug("Registering VM with the memory manager")
 
@@ -326,7 +241,7 @@ func (o *Orchestrator) StartVM(ctx context.Context, vmID, imageName string) (str
 
 	logger.Debug("Successfully started a VM")
 
-	return "VM, container, and task started successfully", startVMMetric, nil
+	return "VM, container, and task started successfully", nil, nil
 }
 
 // GetFuncClient Returns the client for the function

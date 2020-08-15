@@ -445,6 +445,7 @@ github.com/opencontainers/image-spec v1.0.1 h1:JMemWkRwHx4Zj+fVxWoMCFm/8sYGGrUVo
 github.com/opencontainers/image-spec v1.0.1/go.mod h1:BtxoFyWECRxE4U/7sNtV5W15zMzWCbyJoFRP3s7yZA0=
 github.com/opencontainers/runc v0.0.0-20190115041553-12f6a991201f h1:a969LJ4IQFwRHYqonHtUDMSh9i54WcKggeEkQ3fZMl4=
 github.com/opencontainers/runc v0.0.0-20190115041553-12f6a991201f/go.mod h1:qT5XzbpPznkRYVz/mWwUaVBUv2rmF59PVA73FjuZG0U=
+github.com/opencontainers/runc v0.1.1 h1:GlxAyO6x8rfZYN9Tt0Kti5a/cP41iuiO2yYT0IJGY8Y=
 github.com/opencontainers/runc v0.1.1/go.mod h1:qT5XzbpPznkRYVz/mWwUaVBUv2rmF59PVA73FjuZG0U=
 github.com/opencontainers/runc v1.0.0-rc9 h1:/k06BMULKF5hidyoZymkoDCzdJzltZpz/UU4LguQVtc=
 github.com/opencontainers/runc v1.0.0-rc9/go.mod h1:qT5XzbpPznkRYVz/mWwUaVBUv2rmF59PVA73FjuZG0U=
@@ -665,6 +666,8 @@ github.com/ustiugov/fccd-orchestrator/memory/manager v0.0.0-20200814064842-03f16
 github.com/ustiugov/fccd-orchestrator/memory/manager v0.0.0-20200814064842-03f16a02475d/go.mod h1:RnM7KtF9SaVH0lyeTOFvbMq2E+e+1LAH4rT4AQc2uB0=
 github.com/ustiugov/fccd-orchestrator/memory/manager v0.0.0-20200814104410-a0b269be4cb2 h1:Q8GDhAw8tByrPQxgpOVX8lcGzQKpvIUxmVOkqpC/r1E=
 github.com/ustiugov/fccd-orchestrator/memory/manager v0.0.0-20200814104410-a0b269be4cb2/go.mod h1:RnM7KtF9SaVH0lyeTOFvbMq2E+e+1LAH4rT4AQc2uB0=
+github.com/ustiugov/fccd-orchestrator/memory/manager v0.0.0-20200815203226-4fafcae8b5ad h1:H1bDV+tIAcfLjzIqrWcUi+JbOecYOB3baP1FEBqd6KU=
+github.com/ustiugov/fccd-orchestrator/memory/manager v0.0.0-20200815203226-4fafcae8b5ad/go.mod h1:RnM7KtF9SaVH0lyeTOFvbMq2E+e+1LAH4rT4AQc2uB0=
 github.com/ustiugov/fccd-orchestrator/metrics v0.0.0-20200722141002-55dbdeb43861 h1:rC47RJSLGILLDcXJ87gPnDZ/3DlfYcSWnAge3z8kQq8=
 github.com/ustiugov/fccd-orchestrator/metrics v0.0.0-20200722141002-55dbdeb43861/go.mod h1:veO20AvWGKpDk3iD0IWJpfEnvF8PJVMK38n3SOWKKR0=
 github.com/ustiugov/fccd-orchestrator/metrics v0.0.0-20200723085111-a9d697412510 h1:2F3Bp/P7C2UMKU+vakjEW/++E2yCntucHKNiRxcxQOE=
@@ -801,6 +804,8 @@ github.com/ustiugov/firecracker-containerd v0.0.0-20200804113524-bc259c9e8152 h1
 github.com/ustiugov/firecracker-containerd v0.0.0-20200804113524-bc259c9e8152/go.mod h1:r7BLwhdhUd+SuxLLstmoDi2oSNt8HqEcZjqojkpTYxg=
 github.com/ustiugov/firecracker-containerd v0.0.0-20200805090609-c79d53aac901 h1:cqhOqXIeFsgz1bhKq7KxWdBPiTun6qmCyT6f12TABUM=
 github.com/ustiugov/firecracker-containerd v0.0.0-20200805090609-c79d53aac901/go.mod h1:rvK89xSy9NGAYnOiu1DYvcVU7bEimuBHQ25jJi/M6fY=
+github.com/ustiugov/firecracker-containerd v0.0.0-20200815202627-690b0450184d h1:4f97NvpSzKNQVfMuErXQLyx4gULwtJU2ANtqlBrxVZw=
+github.com/ustiugov/firecracker-containerd v0.0.0-20200815202627-690b0450184d/go.mod h1:r7BLwhdhUd+SuxLLstmoDi2oSNt8HqEcZjqojkpTYxg=
 github.com/ustiugov/firecracker-go-sdk v0.20.1-0.20200625102438-8edf287b0123/go.mod h1:zyc9BrKGePpNLbQ5y2ZtdzXEfpMJeHPeFNVpyo0S1WQ=
 github.com/vektah/gqlparser v1.1.2/go.mod h1:1ycwN7Ij5njmMkPPAOaRFY4rET2Enx7IkVv3vaXspKw=
 github.com/vishvananda/netlink v0.0.0-20181108222139-023a6dafdcdf/go.mod h1:+SR5DhBJrl6ZM7CoCKvpw5BKroDKQ+PJqOg65H/2ktk=
