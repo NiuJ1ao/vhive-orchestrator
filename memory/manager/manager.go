@@ -218,6 +218,7 @@ func (m *MemoryManager) Deactivate(vmID string) error {
 	state.userFaultFD.Close()
 	if !state.isRecordReady && !state.IsLazyMode {
 		state.trace.ProcessRecord(state.GuestMemPath, state.WorkingSetPath)
+		state.trace.WriteTrace()
 	}
 
 	state.isRecordReady = true
