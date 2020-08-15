@@ -94,12 +94,6 @@ func NewOrchestrator(snapshotter string, opts ...OrchestratorOption) *Orchestrat
 		opt(o)
 	}
 
-	if _, err := os.Stat(o.snapshotsDir); err != nil {
-		if !os.IsNotExist(err) {
-			log.Panicf("Snapshot dir %s exists", o.snapshotsDir)
-		}
-	}
-
 	if err := os.MkdirAll(o.snapshotsDir, 0777); err != nil {
 		log.Panicf("Failed to create snapshots dir %s", o.snapshotsDir)
 	}
@@ -407,9 +401,6 @@ func (o *Orchestrator) setupCloseHandler() {
 // Cleans up snapshots directory
 func (o *Orchestrator) Cleanup() {
 	o.vmPool.RemoveBridges()
-	if err := os.RemoveAll(o.snapshotsDir); err != nil {
-		log.Panic("failed to delete snapshots dir", err)
-	}
 }
 
 // GetSnapshotsEnabled Returns the snapshots mode of the orchestrator
