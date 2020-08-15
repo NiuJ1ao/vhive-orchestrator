@@ -280,3 +280,99 @@ func getAllImages() map[string]string {
 		//"lr_training":  "ustiugov/lr_training:var_workload",
 	}
 }
+
+func TestBenchParallelServe(t *testing.T) {
+	log.Infof("With cache: %t", *isWithCache)
+
+	var (
+		servedTh      uint64
+		pinnedFuncNum int
+		isSyncOffload bool = true
+	)
+
+	images := getAllImages()
+	parallel := *parallelNum
+	vmID := 0
+
+	funcPool = NewFuncPool(!isSaveMemoryConst, servedTh, pinnedFuncNum, isTestModeConst)
+
+	for _, imageName := range images {
+		// Pull image
+		resp, _, err := funcPool.Serve(context.Background(), "plr_fnc", imageName, "record")
+		require.NoError(t, err, "Function returned error")
+		require.Equal(t, resp.Payload, "Hello, record_response!")
+
+		var startVMGroup sync.WaitGroup
+		concurrency := 4
+		sem := make(chan bool, concurrency)
+
+		for i := 0; i < parallel; i++ {
+			vmIDString := strconv.Itoa(vmID + i)
+
+			startVMGroup.Add(1)
+
+			sem <- true
+
+			go func(vmIDString string) {
+				defer startVMGroup.Done()
+				defer func() { <-sem }()
+
+				// Create VM (and snapshot)
+				resp, _, err := funcPool.Serve(context.Background(), vmIDString, imageName, "record")
+				require.NoError(t, err, "Function returned error")
+				require.Equal(t, resp.Payload, "Hello, record_response!")
+
+				message, err := funcPool.RemoveInstance(vmIDString, imageName, isSyncOffload)
+				require.NoError(t, err, "Function returned error, "+message)
+			}(vmIDString)
+		}
+
+		for i := 0; i < cap(sem); i++ {
+			sem <- true
+		}
+
+		startVMGroup.Wait()
+		log.Info("All snapshots created")
+		//time.Sleep(10 * time.Second)
+
+		sem = make(chan bool, concurrency)
+		var recordVMGroup sync.WaitGroup
+
+		for i := 0; i < parallel; i++ {
+			vmIDString := strconv.Itoa(vmID + i)
+			log.Infof("Recording VM %s", vmIDString)
+
+			recordVMGroup.Add(1)
+
+			sem <- true
+
+			go func(vmIDString string) {
+				log.Infof("Starting recording GO routine for VM %s", vmIDString)
+				defer recordVMGroup.Done()
+				defer func() { <-sem }()
+
+				// Record
+				resp, _, err := funcPool.Serve(context.Background(), vmIDString, imageName, "record")
+				require.NoError(t, err, "Function returned error")
+				require.Equal(t, resp.Payload, "Hello, record_response!")
+
+				log.Infof("Served VM %s", vmIDString)
+
+				message, err := funcPool.RemoveInstance(vmIDString, imageName, isSyncOffload)
+				require.NoError(t, err, "Function returned error, "+message)
+
+				log.Infof("VM %s record done.", vmIDString)
+			}(vmIDString)
+		}
+
+		for i := 0; i < cap(sem); i++ {
+			sem <- true
+		}
+
+		log.Info("All records done")
+		recordVMGroup.Wait()
+		//time.Sleep(10 * time.Second)
+
+		vmID += parallel
+	}
+}
