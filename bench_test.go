@@ -302,53 +302,31 @@ func TestPersistentRecord(t *testing.T) {
 		require.NoError(t, err, "Function returned error")
 		require.Equal(t, resp.Payload, "Hello, record_response!")
 
-		var startVMGroup sync.WaitGroup
 		concurrency := 3
 		sem := make(chan bool, concurrency)
 
 		for i := 0; i < parallel; i++ {
 			vmIDString := strconv.Itoa(vmID + i)
 
-			startVMGroup.Add(1)
+			// Create VM (and snapshot)
+			resp, _, err := funcPool.Serve(context.Background(), vmIDString, imageName, "record")
+			require.NoError(t, err, "Function returned error")
+			require.Equal(t, resp.Payload, "Hello, record_response!")
 
-			sem <- true
-
-			go func(vmIDString string) {
-				defer startVMGroup.Done()
-				defer func() { <-sem }()
-
-				// Create VM (and snapshot)
-				resp, _, err := funcPool.Serve(context.Background(), vmIDString, imageName, "record")
-				require.NoError(t, err, "Function returned error")
-				require.Equal(t, resp.Payload, "Hello, record_response!")
-
-				message, err := funcPool.RemoveInstance(vmIDString, imageName, isSyncOffload)
-				require.NoError(t, err, "Function returned error, "+message)
-			}(vmIDString)
+			message, err := funcPool.RemoveInstance(vmIDString, imageName, isSyncOffload)
+			require.NoError(t, err, "Function returned error, "+message)
 		}
 
-		for i := 0; i < cap(sem); i++ {
-			sem <- true
-		}
-
-		startVMGroup.Wait()
 		log.Info("All snapshots created")
-		//time.Sleep(10 * time.Second)
-
-		sem = make(chan bool, concurrency)
-		var recordVMGroup sync.WaitGroup
 
 		for i := 0; i < parallel; i++ {
 			vmIDString := strconv.Itoa(vmID + i)
 			log.Infof("Recording VM %s", vmIDString)
 
-			recordVMGroup.Add(1)
-
 			sem <- true
 
 			go func(vmIDString string) {
 				log.Infof("Starting recording GO routine for VM %s", vmIDString)
-				defer recordVMGroup.Done()
 				defer func() { <-sem }()
 
 				// Record
@@ -370,9 +348,5 @@ func TestPersistentRecord(t *testing.T) {
 		}
 
 		log.Info("All records done")
-		recordVMGroup.Wait()
-		//time.Sleep(10 * time.Second)
-
-		vmID += parallel
 	}
 }
