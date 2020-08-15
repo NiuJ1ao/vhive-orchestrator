@@ -77,7 +77,7 @@ func timeoutDialer(address string, timeout time.Duration) (net.Conn, error) {
 				}
 				if err != nil {
 					log.Debug("Reconnecting after an error")
-					<-time.After(1 * time.Millisecond)
+					<-time.After(10 * time.Millisecond)
 					continue
 				}
 
