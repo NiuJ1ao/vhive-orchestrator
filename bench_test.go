@@ -281,7 +281,7 @@ func getAllImages() map[string]string {
 	}
 }
 
-func TestBenchParallelServe(t *testing.T) {
+func TestPersistentRecord(t *testing.T) {
 	log.Infof("With cache: %t", *isWithCache)
 
 	var (
@@ -303,7 +303,7 @@ func TestBenchParallelServe(t *testing.T) {
 		require.Equal(t, resp.Payload, "Hello, record_response!")
 
 		var startVMGroup sync.WaitGroup
-		concurrency := 4
+		concurrency := 3
 		sem := make(chan bool, concurrency)
 
 		for i := 0; i < parallel; i++ {
