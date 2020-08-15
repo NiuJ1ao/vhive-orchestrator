@@ -17,8 +17,7 @@ import (
 
 // TODO: Make it impossible to use lazy mode without UPF
 var (
-	isUPFEnabled = flag.Bool("upf", false, "Set UPF enabled")
-	isLazyMode   = flag.Bool("lazy", false, "Set lazy serving on or off")
+	isLazyMode = flag.Bool("lazy", false, "Set lazy serving on or off")
 )
 
 func TestSnapLoad(t *testing.T) {
@@ -305,6 +304,47 @@ func TestParallelPhasedSnapLoad(t *testing.T) {
 		}
 		vmGroup.Wait()
 	}
+
+	orch.Cleanup()
+}
+
+func TestDirectLoad(t *testing.T) {
+	log.SetFormatter(&log.TextFormatter{
+		TimestampFormat: ctrdlog.RFC3339NanoFixed,
+		FullTimestamp:   true,
+	})
+	//log.SetReportCaller(true) // FIXME: make sure it's false unless debugging
+
+	log.SetOutput(os.Stdout)
+
+	log.SetLevel(log.DebugLevel)
+
+	testTimeout := 120 * time.Second
+	ctx, cancel := context.WithTimeout(namespaces.WithNamespace(context.Background(), namespaceName), testTimeout)
+	defer cancel()
+
+	orch := NewOrchestrator(
+		"devmapper",
+		WithTestModeOn(true),
+		WithUPF(true),
+	)
+
+	vmID := "0_0"
+
+	message, _, err := orch.StartVM(ctx, vmID, "ustiugov/helloworld:runner_workload")
+	require.NoError(t, err, "Failed to start VM, "+message)
+
+	message, err = orch.Offload(ctx, vmID)
+	require.NoError(t, err, "Failed to offload VM, "+message)
+
+	message, _, err = orch.LoadSnapshot(ctx, vmID)
+	require.NoError(t, err, "Failed to load snapshot of VM, "+message)
+
+	message, _, err = orch.ResumeVM(ctx, vmID)
+	require.NoError(t, err, "Failed to resume VM, "+message)
+
+	message, err = orch.Offload(ctx, vmID)
+	require.NoError(t, err, "Failed to offload VM, "+message)
 
 	orch.Cleanup()
 }
