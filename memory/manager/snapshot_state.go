@@ -285,8 +285,9 @@ func (s *SnapshotState) pollUserPageFaults(readyCh chan int) {
 
 func (s *SnapshotState) servePageFault(fd int, address uint64) error {
 	var (
-		tStart time.Time
-		src    uint64
+		tStart        time.Time
+		src           uint64
+		isWSInstalled bool
 	)
 
 	s.firstPageFaultOnce.Do(
@@ -298,12 +299,17 @@ func (s *SnapshotState) servePageFault(fd int, address uint64) error {
 
 			if s.isRecordReady {
 				s.installWorkingSetPages(fd)
+				isWSInstalled = true
 			}
 
 			if s.metricsModeOn {
 				s.currentMetric.MetricMap[installWSMetric] = metrics.ToUS(time.Since(tStart))
 			}
 		})
+
+	if isWSInstalled {
+		return nil
+	}
 
 	offset := address - s.startAddress
 
