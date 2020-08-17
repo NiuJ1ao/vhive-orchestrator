@@ -688,6 +688,8 @@ github.com/ustiugov/fccd-orchestrator/ctriface v0.0.0-20200817153838-d747f93dfbb
 github.com/ustiugov/fccd-orchestrator/ctriface v0.0.0-20200817153838-d747f93dfbbb/go.mod h1:9oJQDtJu2clMCcqY1lD4tI1RGS93QebngSk/rYFCA8w=
 github.com/ustiugov/fccd-orchestrator/ctriface v0.0.0-20200817154257-a1aba0bcaa66 h1:hGaZZN6TLA4aaDUks+8+s0SBPLISGHrzDw2uvrFjb6Y=
 github.com/ustiugov/fccd-orchestrator/ctriface v0.0.0-20200817154257-a1aba0bcaa66/go.mod h1:zTa3nxJNJepf0oYv32FQzyRIohgE+wXBiJX01+o15FA=
+github.com/ustiugov/fccd-orchestrator/ctriface v0.0.0-20200817214005-f82bcacf7147 h1:BZyXVyTYjGzx50Z+vM4Lg5InqMzWcF8sQsMtF9wTHa0=
+github.com/ustiugov/fccd-orchestrator/ctriface v0.0.0-20200817214005-f82bcacf7147/go.mod h1:wyM6DGxdafj0+YJVkXVPSAWcYGr5AZcsoVddgePQC1s=
 github.com/ustiugov/fccd-orchestrator/helloworld v0.0.0-20200710144657-9fbec6857e48/go.mod h1:5dhCs/XynpQoQcrhd/YgUBjGahhNpTknQUcC1kHRCaA=
 github.com/ustiugov/fccd-orchestrator/helloworld v0.0.0-20200710145415-bb09d1a68889/go.mod h1:5dhCs/XynpQoQcrhd/YgUBjGahhNpTknQUcC1kHRCaA=
 github.com/ustiugov/fccd-orchestrator/helloworld v0.0.0-20200710150633-096cac68bd72 h1:r67pqykSYWZHFYfIKuT44PTXFJWu5lJcatkV16d3vKU=
@@ -769,6 +771,8 @@ github.com/ustiugov/fccd-orchestrator/memory/manager v0.0.0-20200817153737-f646f
 github.com/ustiugov/fccd-orchestrator/memory/manager v0.0.0-20200817153737-f646f6d40b85/go.mod h1:RnM7KtF9SaVH0lyeTOFvbMq2E+e+1LAH4rT4AQc2uB0=
 github.com/ustiugov/fccd-orchestrator/memory/manager v0.0.0-20200817154216-be2a72ac5949 h1:HriM6keEtUBFDKCT7yJpdhH0xEfw7p8+h4O8CyLnV+w=
 github.com/ustiugov/fccd-orchestrator/memory/manager v0.0.0-20200817154216-be2a72ac5949/go.mod h1:RnM7KtF9SaVH0lyeTOFvbMq2E+e+1LAH4rT4AQc2uB0=
+github.com/ustiugov/fccd-orchestrator/memory/manager v0.0.0-20200817213913-04bec8494ac6 h1:vGvca0JjThzqhJrY2edWapj34COYcmLl07GzzNfhmmI=
+github.com/ustiugov/fccd-orchestrator/memory/manager v0.0.0-20200817213913-04bec8494ac6/go.mod h1:RnM7KtF9SaVH0lyeTOFvbMq2E+e+1LAH4rT4AQc2uB0=
 github.com/ustiugov/fccd-orchestrator/metrics v0.0.0-20200723085111-a9d697412510 h1:2F3Bp/P7C2UMKU+vakjEW/++E2yCntucHKNiRxcxQOE=
 github.com/ustiugov/fccd-orchestrator/metrics v0.0.0-20200723085111-a9d697412510/go.mod h1:NOrYF6usVkdr6gpXAP7pk7jp1MlAXlrZQuUEOVhRuV8=
 github.com/ustiugov/fccd-orchestrator/metrics v0.0.0-20200723105930-96d5e1cb279b h1:0ukOv2nUQqj14TLHf5MkVyvbyiV6AxwUSI7PQQnVdKQ=
