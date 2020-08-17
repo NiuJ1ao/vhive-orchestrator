@@ -13,7 +13,6 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"sort"
 	"sync"
 	"syscall"
 	"time"
@@ -294,7 +293,13 @@ func (s *SnapshotState) servePageFault(fd int, address uint64) error {
 		func() {
 			s.startAddress = address
 			if s.metricsModeOn {
-				s.currentMetric.MetricMap[installWSMetric] = float64(0)
+				tStart = time.Now()
+			}
+
+			s.installWorkingSetPages(fd)
+
+			if s.metricsModeOn {
+				s.currentMetric.MetricMap[installWSMetric] = metrics.ToUS(time.Since(tStart))
 			}
 		})
 
@@ -337,56 +342,16 @@ func (s *SnapshotState) installWorkingSetPages(fd int) {
 	log.Debug("Installing the working set pages")
 	// TODO: parallel (goroutines) vs serial, by region vs by page
 
-	// build a list of sorted regions (probably, it's better to make trace.regions an array instead of a map FIXME)
-	keys := make([]uint64, 0)
-	for k := range s.trace.regions {
-		keys = append(keys, k)
-	}
-	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
+	for _, rec := range s.trace.trace {
+		offset := rec.offset
+		wsOffset := s.trace.offsetIndex[offset]
 
-	var (
-		srcOffset uint64
-		//wg        sync.WaitGroup
-	)
-
-	/*
-		concurrency := 10
-		sem := make(chan bool, concurrency) // channel-based semaphore to limit IOCTLs in-flight
-	*/
-
-	for _, offset := range keys {
-		regLength := s.trace.regions[offset]
-		regAddress := s.startAddress + offset
 		mode := uint64(C.const_UFFDIO_COPY_MODE_DONTWAKE)
-		src := uint64(uintptr(unsafe.Pointer(&s.workingSet[srcOffset])))
-		dst := regAddress
+		src := uint64(uintptr(unsafe.Pointer(&s.workingSet[wsOffset])))
+		dst := s.startAddress + offset
 
-		// BUG: concurrency of 10-100 goroutines caused some OS kernel process (kworker) to hang
-		/*
-			wg.Add(1)
-			sem <- true
-
-			go func(fd int, src, dst, len uint64) {
-				defer wg.Done()
-
-				installRegion(fd, src, dst, mode, len)
-
-				<-sem
-			}(fd, src, dst, uint64(regLength))
-		*/
-
-		installRegion(fd, src, dst, mode, uint64(regLength))
-
-		srcOffset += uint64(regLength) * 4096
+		installRegion(fd, src, dst, mode, uint64(1))
 	}
-
-	/*
-		for i := 0; i < cap(sem); i++ {
-			sem <- true
-		}
-
-		wg.Wait()
-	*/
 
 	// working set installation happens on the first page fault that is always at startAddress
 	wake(fd, s.startAddress, os.Getpagesize())
