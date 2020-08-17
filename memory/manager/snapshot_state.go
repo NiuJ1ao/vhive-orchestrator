@@ -308,8 +308,7 @@ func (s *SnapshotState) servePageFault(fd int, address uint64) error {
 		src = uint64(uintptr(unsafe.Pointer(&s.guestMem[offset])))
 		log.Debug("Serving from guest memory")
 	} else {
-		wsOffset := (s.trace.containedOffsets[offset] / os.Getpagesize()) * os.Getpagesize()
-		src = uint64(uintptr(unsafe.Pointer(&s.workingSet[wsOffset])))
+		src = uint64(uintptr(unsafe.Pointer(&s.workingSet[s.trace.offsetIndex[offset]])))
 		log.Debug("Serving from ws")
 	}
 	dst := uint64(int64(address) & ^(int64(os.Getpagesize()) - 1))
