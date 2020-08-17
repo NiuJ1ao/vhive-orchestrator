@@ -289,7 +289,9 @@ func (s *SnapshotState) servePageFault(fd int, address uint64) error {
 	s.firstPageFaultOnce.Do(
 		func() {
 			s.startAddress = address
-			s.currentMetric.MetricMap[installWSMetric] = float64(0)
+			if s.metricsModeOn {
+				s.currentMetric.MetricMap[installWSMetric] = float64(0)
+			}
 		})
 
 	offset := address - s.startAddress
@@ -300,8 +302,10 @@ func (s *SnapshotState) servePageFault(fd int, address uint64) error {
 
 	if !s.trace.containsRecord(rec) {
 		src = uint64(uintptr(unsafe.Pointer(&s.guestMem[offset])))
+		log.Debug("Serving from guest memory")
 	} else {
 		src = uint64(uintptr(unsafe.Pointer(&s.workingSet[s.trace.containedOffsets[offset]])))
+		log.Debug("Serving from ws")
 	}
 	dst := uint64(int64(address) & ^(int64(os.Getpagesize()) - 1))
 	mode := uint64(0)
