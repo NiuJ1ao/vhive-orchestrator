@@ -10,7 +10,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -53,10 +52,6 @@ type SnapshotState struct {
 	epfd               int
 	quitCh             chan int
 
-	// install the whole working set in the guest memory
-	isReplayWorkingSet bool
-	// prefetch the VMM state to the host memory
-	isPrefetchVMMState bool
 	// to indicate whether the instance has even been activated. this is to
 	// get around cases where offload is called for the first time
 	isEverActivated bool
@@ -191,35 +186,24 @@ func AlignedBlock(BlockSize int) []byte {
 	return block
 }
 
-// fetchState Fetches the working set file (or the whole guest memory) and/or the VMM state file
-func (s *SnapshotState) fetchState() {
-	// if s.isPrefetchVMMState {
-	if _, err := ioutil.ReadFile(s.VMMStatePath); err != nil {
-		log.Errorf("Failed to fetch VMM state: %v\n", err)
+func (s *SnapshotState) copyGuestMemToWorkingSet() {
+	log.Debug("copying guest memory to temp buffer")
+
+	var (
+		dstOffset int
+	)
+	s.workingSet = make([]byte, len(s.trace.trace)*os.Getpagesize())
+
+	for _, rec := range s.trace.trace {
+		offset := rec.offset
+		copyLen := os.Getpagesize()
+
+		s.trace.offsetIndex[offset] = dstOffset
+
+		copy(s.workingSet[dstOffset:], s.guestMem[offset:offset+uint64(copyLen)])
+
+		dstOffset += copyLen
 	}
-	//}
-
-	size := len(s.trace.trace) * os.Getpagesize()
-
-	// O_DIRECT allows to fully leverage disk bandwidth by bypassing the OS page cache
-	f, err := os.OpenFile(s.WorkingSetPath, os.O_RDONLY|syscall.O_DIRECT, 0600)
-	if err != nil {
-		log.Errorf("Failed to open the working set file for direct-io: %v\n", err)
-	}
-
-	s.workingSet = AlignedBlock(size) // direct io requires aligned buffer
-
-	if n, err := f.Read(s.workingSet); n != size || err != nil {
-		log.Errorf("Reading working set file failed: %v\n", err)
-	}
-
-	//trace.wsFetched = true
-	log.Debug("Fetched the entire working set")
-	if err := f.Close(); err != nil {
-		log.Errorf("Failed to close the working set file: %v\n", err)
-	}
-
-	// return nil FIXME: add error checks in this function
 }
 
 func (s *SnapshotState) pollUserPageFaults(readyCh chan int) {
@@ -236,17 +220,15 @@ func (s *SnapshotState) pollUserPageFaults(readyCh chan int) {
 
 	readyCh <- 0
 
-	// if s.isReplayWorkingSet {
 	if s.isRecordReady && !s.IsLazyMode {
 		if s.metricsModeOn {
 			tStart = time.Now()
 		}
-		s.fetchState()
+		s.copyGuestMemToWorkingSet()
 		if s.metricsModeOn {
 			s.currentMetric.MetricMap[fetchStateMetric] = metrics.ToUS(time.Since(tStart))
 		}
 	}
-	// }
 
 	for {
 		select {
@@ -309,7 +291,6 @@ func (s *SnapshotState) servePageFault(fd int, address uint64) error {
 		func() {
 			s.startAddress = address
 
-			// if s.isReplayWorkingSet
 			if s.isRecordReady && !s.IsLazyMode {
 				if s.metricsModeOn {
 					tStart = time.Now()
@@ -321,7 +302,6 @@ func (s *SnapshotState) servePageFault(fd int, address uint64) error {
 
 				workingSetInstalled = true
 			}
-			// }
 		})
 
 	if workingSetInstalled {

@@ -1,10 +1,8 @@
 package manager
 
 import (
-	"encoding/csv"
 	"os"
 	"sort"
-	"strconv"
 	"sync"
 
 	log "github.com/sirupsen/logrus"
@@ -23,6 +21,7 @@ type Trace struct {
 	containedOffsets map[uint64]int
 	trace            []Record
 	regions          map[uint64]int
+	offsetIndex      map[uint64]int
 }
 
 func initTrace(traceFileName string) *Trace {
@@ -32,6 +31,7 @@ func initTrace(traceFileName string) *Trace {
 	t.regions = make(map[uint64]int)
 	t.containedOffsets = make(map[uint64]int)
 	t.trace = make([]Record, 0)
+	t.offsetIndex = make(map[uint64]int)
 
 	return t
 }
@@ -45,61 +45,6 @@ func (t *Trace) AppendRecord(r Record) {
 	t.containedOffsets[r.offset] = 0
 }
 
-// WriteTrace Writes all the records to a file
-func (t *Trace) WriteTrace() {
-	t.Lock()
-	defer t.Unlock()
-
-	file, err := os.Create(t.traceFileName)
-	if err != nil {
-		log.Fatalf("Failed to open trace file for writing: %v", err)
-	}
-	defer file.Close()
-
-	writer := csv.NewWriter(file)
-	defer writer.Flush()
-
-	for _, rec := range t.trace {
-		err := writer.Write([]string{
-			strconv.FormatUint(rec.offset, 16)})
-		if err != nil {
-			log.Fatalf("Failed to write trace: %v", err)
-		}
-	}
-}
-
-// readTrace Reads all the records from a CSV file
-func (t *Trace) readTrace() {
-	f, err := os.Open(t.traceFileName)
-	if err != nil {
-		log.Fatalf("Failed to open trace file for reading: %v", err)
-	}
-	defer f.Close()
-
-	lines, err := csv.NewReader(f).ReadAll()
-	if err != nil {
-		log.Fatalf("Failed to read from the trace file: %v", err)
-	}
-
-	for _, line := range lines {
-		rec := readRecord(line)
-		t.AppendRecord(rec)
-	}
-}
-
-// readRecord Parses a record from a line
-func readRecord(line []string) Record {
-	offset, err := strconv.ParseUint(line[0], 16, 64)
-	if err != nil {
-		log.Fatalf("Failed to convert string to offset: %v", err)
-	}
-
-	rec := Record{
-		offset: offset,
-	}
-	return rec
-}
-
 // Search trace for the record with the same offset
 func (t *Trace) containsRecord(rec Record) bool {
 	_, ok := t.containedOffsets[rec.offset]
@@ -109,7 +54,7 @@ func (t *Trace) containsRecord(rec Record) bool {
 
 // ProcessRecord Prepares the trace, the regions map, and the working set file for replay
 // Must be called when record is done (i.e., it is not concurrency-safe vs. AppendRecord)
-func (t *Trace) ProcessRecord(GuestMemPath, WorkingSetPath string) {
+func (t *Trace) ProcessRecord() {
 	log.Debug("Preparing replay structures")
 
 	// sort trace records in the ascending order by offset
@@ -129,54 +74,4 @@ func (t *Trace) ProcessRecord(GuestMemPath, WorkingSetPath string) {
 
 		last = rec.offset
 	}
-
-	t.writeWorkingSetPagesToFile(GuestMemPath, WorkingSetPath)
-}
-
-func (t *Trace) writeWorkingSetPagesToFile(guestMemFileName, WorkingSetPath string) {
-	log.Debug("Writing the working set pages to a disk")
-
-	fSrc, err := os.Open(guestMemFileName)
-	if err != nil {
-		log.Fatalf("Failed to open guest memory file for reading")
-	}
-	defer fSrc.Close()
-	fDst, err := os.Create(WorkingSetPath)
-	if err != nil {
-		log.Fatalf("Failed to open ws file for writing")
-	}
-	defer fDst.Close()
-
-	var (
-		dstOffset int64
-		count     int
-	)
-
-	// Form a sorted slice of keys to access the map in a predetermined order
-	keys := make([]uint64, 0)
-	for k := range t.regions {
-		keys = append(keys, k)
-	}
-	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
-
-	for _, offset := range keys {
-		regLength := t.regions[offset]
-		copyLen := regLength * os.Getpagesize()
-
-		buf := make([]byte, copyLen)
-
-		if n, err := fSrc.ReadAt(buf, int64(offset)); n != copyLen || err != nil {
-			log.Fatalf("Read file failed for src")
-		}
-
-		if n, err := fDst.WriteAt(buf, dstOffset); n != copyLen || err != nil {
-			log.Fatalf("Write file failed for dst")
-		}
-
-		dstOffset += int64(copyLen)
-
-		count += regLength
-	}
-
-	fDst.Sync()
 }
