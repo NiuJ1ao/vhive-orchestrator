@@ -282,41 +282,29 @@ func (s *SnapshotState) pollUserPageFaults(readyCh chan int) {
 
 func (s *SnapshotState) servePageFault(fd int, address uint64) error {
 	var (
-		tStart              time.Time
-		workingSetInstalled bool
-		isMeasured          bool
+		tStart time.Time
+		src    uint64
 	)
 
 	s.firstPageFaultOnce.Do(
 		func() {
 			s.startAddress = address
-
-			if s.isRecordReady && !s.IsLazyMode {
-				if s.metricsModeOn {
-					tStart = time.Now()
-				}
-				s.installWorkingSetPages(fd)
-				if s.metricsModeOn {
-					s.currentMetric.MetricMap[installWSMetric] = metrics.ToUS(time.Since(tStart))
-				}
-
-				workingSetInstalled = true
-			}
+			s.currentMetric.MetricMap[installWSMetric] = float64(0)
 		})
 
-	if workingSetInstalled {
-		return nil
-	}
-
 	offset := address - s.startAddress
-
-	src := uint64(uintptr(unsafe.Pointer(&s.guestMem[offset])))
-	dst := uint64(int64(address) & ^(int64(os.Getpagesize()) - 1))
-	mode := uint64(0)
 
 	rec := Record{
 		offset: offset,
 	}
+
+	if !s.trace.containsRecord(rec) {
+		src = uint64(uintptr(unsafe.Pointer(&s.guestMem[offset])))
+	} else {
+		src = uint64(uintptr(unsafe.Pointer(&s.workingSet[s.trace.containedOffsets[offset]])))
+	}
+	dst := uint64(int64(address) & ^(int64(os.Getpagesize()) - 1))
+	mode := uint64(0)
 
 	if !s.isRecordReady {
 		s.trace.AppendRecord(rec)
@@ -325,28 +313,12 @@ func (s *SnapshotState) servePageFault(fd int, address uint64) error {
 	}
 
 	if s.metricsModeOn {
-		if s.isRecordReady {
-			if s.IsLazyMode {
-				if !s.trace.containsRecord(rec) {
-					s.uniqueNum++
-					isMeasured = true
-				}
-				s.replayedNum++
-			} else {
-				s.uniqueNum++
-				isMeasured = true
-			}
-
-		}
-
-		if isMeasured {
-			tStart = time.Now()
-		}
+		tStart = time.Now()
 	}
 
 	err := installRegion(fd, src, dst, mode, 1)
 
-	if s.metricsModeOn && isMeasured {
+	if s.metricsModeOn {
 		s.currentMetric.MetricMap[serveUniqueMetric] += metrics.ToUS(time.Since(tStart))
 	}
 
