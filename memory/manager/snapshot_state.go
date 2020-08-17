@@ -350,15 +350,14 @@ func (s *SnapshotState) installWorkingSetPages(fd int) {
 	log.Debug("Installing the working set pages")
 	// TODO: parallel (goroutines) vs serial, by region vs by page
 
-	for _, rec := range s.trace.trace {
-		offset := rec.offset
+	for offset, regLength := range s.trace.regions {
 		wsOffset := s.trace.offsetIndex[offset]
 
 		mode := uint64(C.const_UFFDIO_COPY_MODE_DONTWAKE)
 		src := uint64(uintptr(unsafe.Pointer(&s.workingSet[wsOffset])))
 		dst := s.startAddress + offset
 
-		installRegion(fd, src, dst, mode, uint64(1))
+		installRegion(fd, src, dst, mode, uint64(regLength))
 	}
 
 	// working set installation happens on the first page fault that is always at startAddress
