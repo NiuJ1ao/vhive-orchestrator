@@ -202,10 +202,10 @@ func (s *SnapshotState) copyGuestMemToWorkingSet() {
 
 		wg.Add(1)
 
-		go func() {
+		go func(offset uint64, dstOffset int) {
 			defer wg.Done()
 			copy(s.workingSet[dstOffset:], s.guestMem[offset:offset+uint64(copyLen)])
-		}()
+		}(offset, dstOffset)
 
 		dstOffset += copyLen
 	}
