@@ -190,6 +190,7 @@ func (s *SnapshotState) copyGuestMemToWorkingSet() {
 
 	var (
 		dstOffset int
+		wg        sync.WaitGroup
 	)
 	s.workingSet = make([]byte, len(s.trace.trace)*os.Getpagesize())
 
@@ -199,14 +200,17 @@ func (s *SnapshotState) copyGuestMemToWorkingSet() {
 
 		s.trace.offsetIndex[offset] = dstOffset
 
-		n := copy(s.workingSet[dstOffset:], s.guestMem[offset:offset+uint64(copyLen)])
+		wg.Add(1)
 
-		if n != copyLen {
-			log.Fatal("Did nto copy the right number of bytes")
-		}
+		go func(offset uint64, dstOffset int) {
+			defer wg.Done()
+			copy(s.workingSet[dstOffset:], s.guestMem[offset:offset+uint64(copyLen)])
+		}(offset, dstOffset)
 
 		dstOffset += copyLen
 	}
+
+	wg.Wait()
 }
 
 func (s *SnapshotState) pollUserPageFaults(readyCh chan int) {
