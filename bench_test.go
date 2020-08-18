@@ -192,7 +192,7 @@ func TestBenchUPFStats(t *testing.T) {
 	)
 
 	images := getAllImages()
-	benchCount := 10
+	benchCount := 4
 	vmID := 0
 
 	funcPool = NewFuncPool(!isSaveMemoryConst, servedTh, pinnedFuncNum, isTestModeConst)
