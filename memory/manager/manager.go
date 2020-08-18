@@ -345,6 +345,10 @@ func (m *MemoryManager) DumpUPFLatencyStats(vmID, functionName, latencyOutFilePa
 		return errors.New("Metrics mode is not on")
 	}
 
+	for _, metr := range state.latencyMetrics {
+		metrics.PrintMeanStd(latencyOutFilePath, functionName, metr)
+	}
+
 	return metrics.PrintMeanStd(latencyOutFilePath, functionName, state.latencyMetrics...)
 
 }
