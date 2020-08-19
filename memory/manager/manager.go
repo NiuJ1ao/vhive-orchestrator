@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/ustiugov/fccd-orchestrator/metrics"
 	"gonum.org/v1/gonum/stat"
@@ -140,6 +141,7 @@ func (m *MemoryManager) Activate(vmID string, userFaultFDFile *os.File) (err err
 		state.uniqueNum = 0
 		state.replayedNum = 0
 		state.currentMetric = metrics.NewMetric()
+		state.activateStart = time.Now()
 	}
 
 	fdInt = int(state.userFaultFD.Fd())
@@ -201,6 +203,11 @@ func (m *MemoryManager) Deactivate(vmID string) error {
 		return err
 	}
 
+	state.userFaultFD.Close()
+	if !state.isRecordReady && !state.IsLazyMode {
+		state.trace.ProcessRecord(state.GuestMemPath, state.WorkingSetPath)
+	}
+
 	if state.metricsModeOn && state.isRecordReady {
 		state.uniquePFServed = append(state.uniquePFServed, float64(state.uniqueNum))
 
@@ -212,12 +219,9 @@ func (m *MemoryManager) Deactivate(vmID string) error {
 			)
 		}
 
-		state.latencyMetrics = append(state.latencyMetrics, state.currentMetric)
-	}
+		state.currentMetric.MetricMap["MMLifetime"] = metrics.ToUS(time.Since(state.activateStart))
 
-	state.userFaultFD.Close()
-	if !state.isRecordReady && !state.IsLazyMode {
-		state.trace.ProcessRecord(state.GuestMemPath, state.WorkingSetPath)
+		state.latencyMetrics = append(state.latencyMetrics, state.currentMetric)
 	}
 
 	state.isRecordReady = true

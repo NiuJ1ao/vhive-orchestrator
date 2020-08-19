@@ -79,6 +79,8 @@ type SnapshotState struct {
 	replayedNum   int // only valid for lazy serving
 	uniqueNum     int
 	currentMetric *metrics.Metric
+
+	activateStart time.Time
 }
 
 // NewSnapshotState Initializes a snapshot state
