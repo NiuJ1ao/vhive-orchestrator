@@ -54,6 +54,7 @@ func TestBenchParallelServe(t *testing.T) {
 		pinnedFuncNum int
 		isSyncOffload bool = true
 		serveMetrics       = make([]*metrics.Metric, *parallelNum)
+		upfMetrics         = make([]*metrics.Metric, *parallelNum)
 	)
 
 	images := getAllImages()
@@ -177,6 +178,17 @@ func TestBenchParallelServe(t *testing.T) {
 				vmIDString := strconv.Itoa(vmID + i)
 				message, err := funcPool.RemoveInstance(vmIDString, imageName, isSyncOffload)
 				require.NoError(t, err, "Function returned error, "+message)
+
+				memManagerMetrics, err := orch.GetUPFLatencyStats(vmIDString+"_0", funcName, "")
+				require.NoError(t, err, "Failed to ge tupf metrics")
+				require.Equal(t, len(memManagerMetrics), 1, "wrong length")
+				upfMetrics[i] = memManagerMetrics[0]
+			}
+
+			for i, metr := range serveMetrics {
+				for k, v := range upfMetrics[i].MetricMap {
+					metr.MetricMap[k] = v
+				}
 			}
 
 			for _, metr := range serveMetrics {
