@@ -35,6 +35,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
+	"github.com/ustiugov/fccd-orchestrator/metrics"
 )
 
 var (
@@ -189,10 +190,11 @@ func TestBenchUPFStats(t *testing.T) {
 		servedTh      uint64
 		pinnedFuncNum int
 		isSyncOffload bool = true
+		benchCount         = 4
+		serveMetrics       = make([]*metrics.Metric, benchCount)
 	)
 
 	images := getAllImages()
-	benchCount := 4
 	vmID := 0
 
 	funcPool = NewFuncPool(!isSaveMemoryConst, servedTh, pinnedFuncNum, isTestModeConst)
@@ -225,15 +227,19 @@ func TestBenchUPFStats(t *testing.T) {
 				dropPageCache()
 			}
 
-			resp, _, err := funcPool.Serve(context.Background(), vmIDString, imageName, "replay")
+			resp, metr, err := funcPool.Serve(context.Background(), vmIDString, imageName, "replay")
 			require.NoError(t, err, "Function returned error")
 			require.Equal(t, resp.Payload, "Hello, replay_response!")
 
 			message, err := funcPool.RemoveInstance(vmIDString, imageName, isSyncOffload)
 			require.NoError(t, err, "Function returned error, "+message)
+
+			serveMetrics[i] = metr
 		}
 
 		vmID++
+
+		metrics.PrintMeanStd(getOutFile("serve.txt"), funcName, serveMetrics...)
 
 		err = funcPool.DumpUPFPageStats(vmIDString, imageName, funcName, getOutFile("pageStats.csv"))
 		require.NoError(t, err, "Failed to dump page stats for"+funcName)
