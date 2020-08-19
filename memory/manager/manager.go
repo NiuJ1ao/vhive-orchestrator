@@ -319,6 +319,35 @@ func (m *MemoryManager) DumpUPFPageStats(vmID, functionName, metricsOutFilePath 
 	return nil
 }
 
+// GetUPFLatencyStats Returns the gathered metrics for the VM
+func (m *MemoryManager) GetUPFLatencyStats(vmID, functionName, latencyOutFilePath string) ([]*metrics.Metric, error) {
+	logger := log.WithFields(log.Fields{"vmID": vmID})
+
+	logger.Debug("returning stats about latency of UPFs")
+
+	m.Lock()
+
+	state, ok := m.instances[vmID]
+	if !ok {
+		logger.Error("VM not registered with the memory manager")
+		return nil, errors.New("VM not registered with the memory manager")
+	}
+
+	m.Unlock()
+
+	if state.isActive {
+		logger.Error("Cannot get stats while VM is active")
+		return nil, errors.New("Cannot get stats while VM is active")
+	}
+
+	if !m.MetricsModeOn || !state.metricsModeOn {
+		logger.Error("Metrics mode is not on")
+		return nil, errors.New("Metrics mode is not on")
+	}
+
+	return state.latencyMetrics, nil
+}
+
 // DumpLatencyStats Dumps latency stats collected for the VM
 func (m *MemoryManager) DumpUPFLatencyStats(vmID, functionName, latencyOutFilePath string) (err error) {
 	logger := log.WithFields(log.Fields{"vmID": vmID})
