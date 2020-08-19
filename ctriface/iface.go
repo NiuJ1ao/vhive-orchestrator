@@ -524,6 +524,14 @@ func (o *Orchestrator) DumpUPFLatencyStats(vmID, functionName, latencyOutFilePat
 	return o.memoryManager.DumpUPFLatencyStats(vmID, functionName, latencyOutFilePath)
 }
 
+// GetUPFLatencyStats Returns the memory manager's latency stats
+func (o *Orchestrator) GetUPFLatencyStats(vmID, functionName, latencyOutFilePath string) ([]*metrics.Metric, error) {
+	logger := log.WithFields(log.Fields{"vmID": vmID})
+	logger.Debug("Orchestrator received DumpUPFPageStats")
+
+	return o.memoryManager.GetUPFLatencyStats(vmID, functionName, latencyOutFilePath)
+}
+
 // PauseVM Pauses a VM
 func (o *Orchestrator) PauseVM(ctx context.Context, vmID string) (string, error) {
 	logger := log.WithFields(log.Fields{"vmID": vmID})
