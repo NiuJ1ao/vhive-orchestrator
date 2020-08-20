@@ -239,6 +239,9 @@ func TestBenchUPFStats(t *testing.T) {
 
 		vmID++
 
+		for _, metr := range serveMetrics {
+			metrics.PrintMeanStd(getOutFile("serve.txt"), funcName, metr)
+		}
 		metrics.PrintMeanStd(getOutFile("serve.txt"), funcName, serveMetrics...)
 
 		err = funcPool.DumpUPFPageStats(vmIDString, imageName, funcName, getOutFile("pageStats.csv"))
