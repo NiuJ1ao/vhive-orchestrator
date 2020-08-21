@@ -10,7 +10,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -196,9 +195,9 @@ func AlignedBlock(BlockSize int) []byte {
 // fetchState Fetches the working set file (or the whole guest memory) and/or the VMM state file
 func (s *SnapshotState) fetchState() {
 	// if s.isPrefetchVMMState {
-	if _, err := ioutil.ReadFile(s.VMMStatePath); err != nil {
-		log.Errorf("Failed to fetch VMM state: %v\n", err)
-	}
+	//if _, err := ioutil.ReadFile(s.VMMStatePath); err != nil {
+	//	log.Errorf("Failed to fetch VMM state: %v\n", err)
+	//}
 	//}
 
 	size := len(s.trace.trace) * os.Getpagesize()
@@ -229,7 +228,6 @@ func (s *SnapshotState) pollUserPageFaults(readyCh chan int) {
 
 	var (
 		events [1]syscall.EpollEvent
-		tStart time.Time
 	)
 
 	logger.Debug("Starting polling loop")
@@ -237,18 +235,6 @@ func (s *SnapshotState) pollUserPageFaults(readyCh chan int) {
 	defer syscall.Close(s.epfd)
 
 	readyCh <- 0
-
-	// if s.isReplayWorkingSet {
-	if s.isRecordReady && !s.IsLazyMode {
-		if s.metricsModeOn {
-			tStart = time.Now()
-		}
-		s.fetchState()
-		if s.metricsModeOn {
-			s.currentMetric.MetricMap[fetchStateMetric] = metrics.ToUS(time.Since(tStart))
-		}
-	}
-	// }
 
 	for {
 		select {
