@@ -79,6 +79,7 @@ type Orchestrator struct {
 	isLazyMode       bool
 	snapshotsDir     string
 	isMetricsMode    bool
+	DmitriiCounter   int
 
 	memoryManager *manager.MemoryManager
 }
@@ -627,6 +628,40 @@ func (o *Orchestrator) LoadSnapshot(ctx context.Context, vmID string) (string, *
 		EnableUserPF:     o.GetUPFEnabled(),
 	}
 
+	var buf []byte
+	// FETCH STATE
+	if o.DmitriiCounter > 0 {
+		tStart = time.Now()
+
+		f, err := os.OpenFile(o.getWorkingSetFile(vmID), os.O_RDONLY|syscall.O_DIRECT, 0600)
+
+		fi, err := f.Stat()
+		if err != nil {
+			log.Fatal("failed to stat")
+		}
+
+		size := int(fi.Size())
+		if err != nil {
+			log.Errorf("Failed to open the working set file for direct-io: %v\n", err)
+		}
+
+		buf = manager.AlignedBlock(size) // direct io requires aligned buffer
+
+		if n, err := f.Read(buf); n != size || err != nil {
+			log.Errorf("Reading working set file failed: %v\n", err)
+		}
+
+		//trace.wsFetched = true
+		log.Debug("Fetched the entire working set")
+		if err := f.Close(); err != nil {
+			log.Errorf("Failed to close the working set file: %v\n", err)
+		}
+
+		loadSnapshotMetric.MetricMap["FetchState"] = metrics.ToUS(time.Since(tStart))
+	}
+
+	// FETCH STATE DONE
+
 	tStart = time.Now()
 
 	go func() {
@@ -638,7 +673,7 @@ func (o *Orchestrator) LoadSnapshot(ctx context.Context, vmID string) (string, *
 	}()
 
 	if o.GetUPFEnabled() {
-		if addInstanceErr = o.memoryManager.Activate(vmID, nil); addInstanceErr != nil {
+		if addInstanceErr = o.memoryManager.Activate(vmID, nil, buf); addInstanceErr != nil {
 			logger.Warn("Failed to activate VM in the memory manager", addInstanceErr)
 		}
 	}
@@ -651,6 +686,8 @@ func (o *Orchestrator) LoadSnapshot(ctx context.Context, vmID string) (string, *
 		multierr := multierror.Of(loadErr, addInstanceErr)
 		return "Failed to load snapshot of VM " + vmID, loadSnapshotMetric, multierr
 	}
+
+	o.DmitriiCounter++
 
 	return "Snapshot of VM " + vmID + " loaded successfully", loadSnapshotMetric, nil
 }
