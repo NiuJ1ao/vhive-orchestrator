@@ -633,7 +633,7 @@ func (o *Orchestrator) LoadSnapshot(ctx context.Context, vmID string) (string, *
 	if o.DmitriiCounter > 0 {
 		tStart = time.Now()
 
-		f, err := os.OpenFile(o.getWorkingSetFile(vmID), os.O_RDONLY|syscall.O_DIRECT, 0600)
+		f, err := os.OpenFile(o.getWorkingSetFile(vmID), 0600)
 
 		fi, err := f.Stat()
 		if err != nil {
