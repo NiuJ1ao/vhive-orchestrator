@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/ustiugov/fccd-orchestrator/metrics"
 	"gonum.org/v1/gonum/stat"
@@ -100,6 +101,7 @@ func (m *MemoryManager) Activate(vmID string, userFaultFDFile *os.File) (err err
 		ok      bool
 		state   *SnapshotState
 		readyCh chan int = make(chan int)
+		tStart  time.Time
 	)
 
 	m.Lock()
@@ -156,6 +158,16 @@ func (m *MemoryManager) Activate(vmID string, userFaultFDFile *os.File) (err err
 	if err := syscall.EpollCtl(state.epfd, syscall.EPOLL_CTL_ADD, fdInt, &event); err != nil {
 		logger.Error("Failed to subscribe VM")
 		return err
+	}
+
+	if state.isRecordReady && !state.IsLazyMode {
+		if state.metricsModeOn {
+			tStart = time.Now()
+		}
+		state.copyGuestMemToWorkingSet()
+		if state.metricsModeOn {
+			state.currentMetric.MetricMap[fetchStateMetric] = metrics.ToUS(time.Since(tStart))
+		}
 	}
 
 	go state.pollUserPageFaults(readyCh)

@@ -218,7 +218,6 @@ func (s *SnapshotState) pollUserPageFaults(readyCh chan int) {
 
 	var (
 		events [1]syscall.EpollEvent
-		tStart time.Time
 	)
 
 	logger.Debug("Starting polling loop")
@@ -226,16 +225,6 @@ func (s *SnapshotState) pollUserPageFaults(readyCh chan int) {
 	defer syscall.Close(s.epfd)
 
 	readyCh <- 0
-
-	if s.isRecordReady && !s.IsLazyMode {
-		if s.metricsModeOn {
-			tStart = time.Now()
-		}
-		s.copyGuestMemToWorkingSet()
-		if s.metricsModeOn {
-			s.currentMetric.MetricMap[fetchStateMetric] = metrics.ToUS(time.Since(tStart))
-		}
-	}
 
 	for {
 		select {
