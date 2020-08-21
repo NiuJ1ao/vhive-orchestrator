@@ -25,6 +25,7 @@ package ctriface
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -632,6 +633,10 @@ func (o *Orchestrator) LoadSnapshot(ctx context.Context, vmID string) (string, *
 	// FETCH STATE
 	if o.DmitriiCounter > 0 {
 		tStart = time.Now()
+
+		if _, err := ioutil.ReadFile(o.getSnapshotFile(vmID)); err != nil {
+			log.Errorf("Failed to fetch VMM state: %v\n", err)
+		}
 
 		f, err := os.OpenFile(o.getWorkingSetFile(vmID), os.O_RDONLY|syscall.O_DIRECT, 0600)
 
