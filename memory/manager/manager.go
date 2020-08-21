@@ -90,7 +90,7 @@ func (m *MemoryManager) DeregisterVM(vmID string) error {
 
 // Activate Creates an epoller to serve page faults for the VM
 // userFaultFDFile is for testing only
-func (m *MemoryManager) Activate(vmID string, userFaultFDFile *os.File) (err error) {
+func (m *MemoryManager) Activate(vmID string, userFaultFDFile *os.File, workingSetArg []byte) (err error) {
 	logger := log.WithFields(log.Fields{"vmID": vmID})
 
 	logger.Debug("Activating instance in the memory manager")
@@ -101,7 +101,6 @@ func (m *MemoryManager) Activate(vmID string, userFaultFDFile *os.File) (err err
 		ok      bool
 		state   *SnapshotState
 		readyCh chan int = make(chan int)
-		tStart  time.Time
 	)
 
 	m.Lock()
@@ -117,6 +116,10 @@ func (m *MemoryManager) Activate(vmID string, userFaultFDFile *os.File) (err err
 	if state.isActive {
 		logger.Error("VM already active")
 		return errors.New("VM already active")
+	}
+
+	if workingSetArg != nil {
+		state.workingSet = workingSetArg
 	}
 
 	if err := state.mapGuestMemory(); err != nil {
@@ -159,16 +162,6 @@ func (m *MemoryManager) Activate(vmID string, userFaultFDFile *os.File) (err err
 	if err := syscall.EpollCtl(state.epfd, syscall.EPOLL_CTL_ADD, fdInt, &event); err != nil {
 		logger.Error("Failed to subscribe VM")
 		return err
-	}
-
-	if state.isRecordReady && !state.IsLazyMode {
-		if state.metricsModeOn {
-			tStart = time.Now()
-		}
-		state.fetchState()
-		if state.metricsModeOn {
-			state.currentMetric.MetricMap[fetchStateMetric] = metrics.ToUS(time.Since(tStart))
-		}
 	}
 
 	go state.pollUserPageFaults(readyCh)
