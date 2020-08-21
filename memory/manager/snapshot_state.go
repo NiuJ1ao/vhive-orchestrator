@@ -10,6 +10,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -192,6 +193,11 @@ func (s *SnapshotState) copyGuestMemToWorkingSet() {
 		dstOffset int
 		wg        sync.WaitGroup
 	)
+
+	if _, err := ioutil.ReadFile(s.VMMStatePath); err != nil {
+		log.Errorf("Failed to fetch VMM state: %v\n", err)
+	}
+
 	s.workingSet = make([]byte, len(s.trace.trace)*os.Getpagesize())
 
 	for _, rec := range s.trace.trace {
@@ -286,6 +292,13 @@ func (s *SnapshotState) servePageFault(fd int, address uint64) error {
 	s.firstPageFaultOnce.Do(
 		func() {
 			s.startAddress = address
+
+			if s.isRecordReady {
+				tStart = time.Now()
+				s.copyGuestMemToWorkingSet()
+				s.currentMetric.MetricMap[fetchStateMetric] = metrics.ToUS(time.Since(tStart))
+			}
+
 			if s.metricsModeOn {
 				tStart = time.Now()
 			}
