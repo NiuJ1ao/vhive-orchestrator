@@ -10,7 +10,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -194,9 +193,9 @@ func (s *SnapshotState) copyGuestMemToWorkingSet() {
 		wg        sync.WaitGroup
 	)
 
-	if _, err := ioutil.ReadFile(s.VMMStatePath); err != nil {
-		log.Errorf("Failed to fetch VMM state: %v\n", err)
-	}
+	//if _, err := ioutil.ReadFile(s.VMMStatePath); err != nil {
+	//	log.Errorf("Failed to fetch VMM state: %v\n", err)
+	//}
 
 	s.workingSet = make([]byte, len(s.trace.trace)*os.Getpagesize())
 
