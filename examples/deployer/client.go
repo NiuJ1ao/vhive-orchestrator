@@ -69,14 +69,14 @@ func getFuncSlice(file string) []functionType {
 
 func deploy(funcPath string, funcSlice []functionType) []string {
 	var urls []string
-	sem := make(chan bool, 1) // limit the number of parallel deployments
+	sem := make(chan bool, 5) // limit the number of parallel deployments
 
 	for k, fType := range funcSlice {
 		for i := 0; i < fType.Count; i++ {
 
 			sem <- true
 
-			fID := fmt.Sprintf("f%d_%d", k, i)
+			fID := fmt.Sprintf("f%d-%d", k, i)
 			url := fmt.Sprintf("%s.%s", fID, "default.192.168.1.240.xip.io")
 			urls = append(urls, url)
 
@@ -99,6 +99,7 @@ func deploy(funcPath string, funcSlice []functionType) []string {
 
 func deployFunction(fID, filePath string) {
 	cmd := exec.Command("kn", "service", "apply", fID, "-f", filePath)
+
 	if err := cmd.Run(); err != nil {
 		log.Fatalf("Failed to deploy function %s, %s: %v\n", fID, filePath, err)
 	}
