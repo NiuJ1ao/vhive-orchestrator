@@ -28,6 +28,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -36,7 +37,14 @@ import (
 )
 
 func main() {
-	urlFile := flag.String("urlf", "urls.csv", "File with functions' URLs")
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defaultURLFile := filepath.Join(dir, "..", "..", "urls.txt")
+	urlFile := flag.String("urlf", defaultURLFile, "File with functions' URLs")
+
 	rps := flag.Int("rps", 1, "Target requests per second")
 	runTime := flag.Int("time", 5, "Run the benchmark for X seconds")
 

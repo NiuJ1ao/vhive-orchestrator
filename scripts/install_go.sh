@@ -11,6 +11,4 @@ export PATH=$PATH:/usr/local/go/bin
 
 sudo sh -c  "echo 'export PATH=$PATH:/usr/local/go/bin' >> /etc/profile"
 
-# use ssh for git, set up GOPRIVATE
-git config --global url."git@github.com:".insteadOf https://github.com/
 go env -w GOPRIVATE=github.com/ustiugov/*
