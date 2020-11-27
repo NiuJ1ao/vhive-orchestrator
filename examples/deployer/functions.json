@@ -1,0 +1,16 @@
+{
+  "functions": [
+    {
+      "file": "helloworld.yaml",
+      "count": 1
+    },
+    {
+      "file": "pyaes.yaml",
+      "count": 2
+    },
+    {
+      "file": "rnn_serving.yaml",
+      "count": 3
+    }
+  ]
+}
