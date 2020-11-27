@@ -17,6 +17,7 @@ func main() {
 	funcPath := flag.String("funcPath", "./knative_workloads", "Path to the folder with *.yml files")
 	funcJSONFile := flag.String("jsonFile", "./examples/deployer/functions.json", "Path to the JSON file with functions to deploy")
 	urlFile := flag.String("urlFile", "urls.txt", "File with functions' URLs")
+	deploymentConcurrency := flag.Int("conc", 5, "Number of functions to deploy concurrently")
 
 	flag.Parse()
 
@@ -24,7 +25,7 @@ func main() {
 
 	funcSlice := getFuncSlice(*funcJSONFile)
 
-	urls := deploy(*funcPath, funcSlice)
+	urls := deploy(*funcPath, funcSlice, *deploymentConcurrency)
 
 	writeURLs(*urlFile, urls)
 
@@ -60,16 +61,12 @@ func getFuncSlice(file string) []functionType {
 
 	json.Unmarshal(byteValue, &functions)
 
-	for i := 0; i < len(functions.Functions); i++ {
-		log.Infof("File name : %v\n", functions.Functions[i].File)
-	}
-
 	return functions.Functions
 }
 
-func deploy(funcPath string, funcSlice []functionType) []string {
+func deploy(funcPath string, funcSlice []functionType, deploymentConcurrency int) []string {
 	var urls []string
-	sem := make(chan bool, 5) // limit the number of parallel deployments
+	sem := make(chan bool, deploymentConcurrency) // limit the number of parallel deployments
 
 	for k, fType := range funcSlice {
 		for i := 0; i < fType.Count; i++ {
@@ -99,9 +96,9 @@ func deploy(funcPath string, funcSlice []functionType) []string {
 
 func deployFunction(fID, filePath string) {
 	cmd := exec.Command("kn", "service", "apply", fID, "-f", filePath)
-
-	if err := cmd.Run(); err != nil {
-		log.Fatalf("Failed to deploy function %s, %s: %v\n", fID, filePath, err)
+	stdoutStderr, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Warnf("Failed to deploy function %s, %s: %v\n%s\n", fID, filePath, err, stdoutStderr)
 	}
 
 	log.Info("Deployed function", fID)
