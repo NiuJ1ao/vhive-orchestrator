@@ -50,17 +50,18 @@ replace (
 )
 
 require (
-	github.com/containerd/containerd v1.3.6
+	github.com/Microsoft/hcsshim/test v0.0.0-20210308065211-081ab2f5da53 // indirect
+	github.com/containerd/containerd v1.5.0-beta.1
 	github.com/ease-lab/vhive/cri v0.0.0-00010101000000-000000000000
 	github.com/ease-lab/vhive/ctriface v0.0.0-00010101000000-000000000000
 	github.com/ease-lab/vhive/examples/protobuf/helloworld v0.0.0-00010101000000-000000000000
 	github.com/ease-lab/vhive/metrics v0.0.0-00010101000000-000000000000
 	github.com/ease-lab/vhive/proto v0.0.0-00010101000000-000000000000
-	github.com/golang/protobuf v1.3.5 // indirect
+	github.com/opencontainers/selinux v1.8.0 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.0
 	github.com/stretchr/testify v1.7.0
-	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
+	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 	google.golang.org/grpc v1.33.1
-	k8s.io/cri-api v0.16.16-rc.0 // indirect
+	gotest.tools/v3 v3.0.3 // indirect
 )
