@@ -63,7 +63,6 @@ func PlotLineCharts(xStep int, filePath, inFile, xLable string) {
 	for col := 0; col < cols; col++ {
 		// create a new plot for a metric
 		p := plot.New()
-
 		p.X.Label.Text = xLable
 		p.Y.Label.Text = records[0][col]
 		p.Y.Min = 0
@@ -227,15 +226,29 @@ func continuousSeries(name string, strokeColor, fillColor drawing.Color, xValues
 // stackGraph returns a instance of chart.Chart
 func stackGraph(xLabel, yLabel string, xMin, xMax, yMin, yMax float64, series []chart.Series, ticks []chart.Tick) chart.Chart {
 	graph := chart.Chart{
+		Title: yLabel,
+		TitleStyle: chart.Style{
+			Show:                true,
+			TextHorizontalAlign: chart.TextHorizontalAlignRight,
+		},
 		Background: chart.Style{
 			Padding: chart.Box{
-				Top: 30,
+				Top:  40,
+				Left: 200,
 			},
 		},
+		Width:  800,
+		Height: 512,
 		XAxis: chart.XAxis{
-			Name:      xLabel,
-			NameStyle: chart.StyleShow(),
-			Style:     chart.StyleShow(),
+			Name: xLabel,
+			NameStyle: chart.Style{
+				Show:     true,
+				FontSize: 15,
+			},
+			Style: chart.Style{
+				Show:     true,
+				FontSize: 13,
+			},
 			Range: &chart.ContinuousRange{
 				Min: xMin,
 				Max: xMax,
@@ -243,9 +256,10 @@ func stackGraph(xLabel, yLabel string, xMin, xMax, yMin, yMax float64, series []
 			Ticks: ticks,
 		},
 		YAxis: chart.YAxis{
-			Name:      yLabel,
-			NameStyle: chart.StyleShow(),
-			Style:     chart.StyleShow(),
+			Style: chart.Style{
+				Show:     true,
+				FontSize: 13,
+			},
 			Range: &chart.ContinuousRange{
 				Min: yMin,
 				Max: yMax,
@@ -254,7 +268,12 @@ func stackGraph(xLabel, yLabel string, xMin, xMax, yMin, yMax float64, series []
 		Series: series,
 	}
 	graph.Elements = []chart.Renderable{
-		chart.LegendThin(&graph),
+		chart.LegendLeft(&graph,
+			chart.Style{
+				Show:     true,
+				FontSize: 13,
+			},
+		),
 	}
 	return graph
 }
