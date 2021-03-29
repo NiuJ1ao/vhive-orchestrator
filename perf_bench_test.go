@@ -80,6 +80,16 @@ var (
 		"start with ! to only include specified nodes ['!Frontend_Bound'])")
 )
 
+func ProfileIncrementConfig(t *testing.T, cpuID, socket, vmStep, maxVM int, nodes string) {
+	*profileCPUID = cpuID
+	*bindSocket = socket
+	*vmIncrStep = vmStep
+	*maxVMNum = maxVM
+	*profilerNodes = nodes
+
+	TestProfileIncrementConfiguration(t)
+}
+
 // TestProfileIncrementConfiguration issues requests to VMs and increments VM number after requests
 // start to violate time latency threshold. It also profile counters and RPS at each step. After
 // iteration finishes, it saves results in bench.csv under *benchDir folder and plots each
@@ -672,6 +682,11 @@ func bindVMs(socket, profileCPU int) error {
 	} else {
 		cpus = cpuInfo.AllCPUs()
 	}
+	// If profile CPU ID is negative, set profileCPU to the first of CPU list
+	// for the logic below
+	if profileCPU < 0 {
+		profileCPU = cpus[0]
+	}
 
 	vmPidList := strings.Split(string(pidBytes), " ")
 
@@ -681,11 +696,16 @@ func bindVMs(socket, profileCPU int) error {
 		return err
 	}
 	// loop over rest pids of firecracker processes
+	idx := 0
 	for _, vm := range vmPidList[1:] {
 		vm = strings.TrimSpace(vm)
-		if err := bindProcessToCPU(vm, cpus...); err != nil {
+		if cpus[idx] == profileCPU {
+			idx = (idx + 1) % len(cpus)
+		}
+		if err := bindProcessToCPU(vm, cpus[idx]); err != nil {
 			return err
 		}
+		idx = (idx + 1) % len(cpus)
 	}
 
 	return nil
