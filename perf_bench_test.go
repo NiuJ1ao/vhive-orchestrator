@@ -689,23 +689,32 @@ func bindVMs(socket, profileCPU int) error {
 	}
 
 	vmPidList := strings.Split(string(pidBytes), " ")
-
-	// bind the first firecracker process to profile CPU
-	profileVM := strings.TrimSpace(vmPidList[0])
-	if err := bindProcessToCPU(profileVM, profileCPU); err != nil {
-		return err
-	}
-	// loop over rest pids of firecracker processes
 	idx := 0
-	for _, vm := range vmPidList[1:] {
-		vm = strings.TrimSpace(vm)
-		if cpus[idx] == profileCPU {
-			idx = (idx + 1) % len(cpus)
-		}
-		if err := bindProcessToCPU(vm, cpus[idx]); err != nil {
+	if len(vmPidList) < len(cpus) {
+		// bind the first firecracker process to profile CPU
+		profileVM := strings.TrimSpace(vmPidList[0])
+		if err := bindProcessToCPU(profileVM, profileCPU); err != nil {
 			return err
 		}
-		idx = (idx + 1) % len(cpus)
+		// loop over rest pids of firecracker processes
+		for _, vm := range vmPidList[1:] {
+			vm = strings.TrimSpace(vm)
+			if cpus[idx] == profileCPU {
+				idx = (idx + 1) % len(cpus)
+			}
+			if err := bindProcessToCPU(vm, cpus[idx]); err != nil {
+				return err
+			}
+			idx = (idx + 1) % len(cpus)
+		}
+	} else {
+		for _, vm := range vmPidList {
+			vm = strings.TrimSpace(vm)
+			if err := bindProcessToCPU(vm, cpus[idx]); err != nil {
+				return err
+			}
+			idx = (idx + 1) % len(cpus)
+		}
 	}
 
 	return nil
@@ -718,7 +727,7 @@ func bindProcessToCPU(pid string, cpus ...int) error {
 		procStr += sep + strconv.Itoa(proc)
 		sep = ","
 	}
-	log.Debugf("binding pid %s to processor %v", pid, cpus)
+	log.Infof("binding pid %s to processor %v", pid, cpus)
 	if err := exec.Command("taskset", "--all-tasks", "-cp", procStr, pid).Run(); err != nil {
 		return err
 	}

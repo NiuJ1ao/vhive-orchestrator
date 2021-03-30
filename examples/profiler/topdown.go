@@ -36,7 +36,7 @@ func main() {
 		cpuID    = 31
 		socket   = 1
 		funcs    = "pyaes"
-		dirs     = []string{"l1", "fb", "fl", "br", "bb", "mb", "cb", "l3", "l1", "db"}
+		dirs     = []string{"top", "fb", "fl", "br", "bb", "mb", "cb", "l3", "l1", "db"}
 		nodeList = []string{"+IPC", "!+Frontend_Bound*/2,+MUX", "!+Fetch_Latency*/3,+MUX", "!+Branch_Resteers*/4,+MUX",
 			"!+Backend_Bound*/2,+MUX", "!+Memory_Bound*/3,+MUX", "!+Core_Bound*/3,+MUX", "!+L3_Bound*/4,+MUX", "!+L1_Bound*/5,+MUX", "!+DRAM_Bound*/5,+MUX"}
 	)
