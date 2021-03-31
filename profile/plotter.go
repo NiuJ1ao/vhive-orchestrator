@@ -150,7 +150,7 @@ func PlotStackCharts(xStep int, metricFile, inFilePath, inFile, xLable string) {
 				log.Fatalf("Failed cumulatively summing list: %v", err)
 			}
 			if values[idx][len(line)-1] > float64(yMax) {
-				yMax = int(math.Round(values[idx][len(line)-1]))
+				yMax = int(math.Ceil(values[idx][len(line)-1]))
 			}
 		}
 		// feed data to series
